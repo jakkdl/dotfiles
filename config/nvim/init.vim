@@ -97,5 +97,7 @@ set cscopequickfix=s-,c-,d-,i-,t-,e-
 
 " load same-folder init.vim
 if filereadable("init.vim")
-    so init.vim
+    if getcwd() != "/home/h/.config/nvim"
+        so init.vim
+    endif
 endif
