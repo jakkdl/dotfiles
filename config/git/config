@@ -1,0 +1,7 @@
+[user]
+	email = h6+github@protonmail.com
+	name = h00701350103
+[pull]
+	ff = only
+[init]
+	defaultBranch = main
