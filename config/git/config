@@ -3,5 +3,7 @@
 	name = h00701350103
 [pull]
 	ff = only
+[push]
+	default = simple
 [init]
 	defaultBranch = main

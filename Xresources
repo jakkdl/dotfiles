@@ -21,3 +21,11 @@
 !*foreground: #A0A0A0
 !*foreground: #FFFFFF
 !*background: rgb:08/08/08
+
+! from sulfur
+!XTerm*background: rgb:00/00/00
+!xterm*foreground: #46a4ff
+!
+!
+XTerm*VT100.translations: #override <Btn1Up>: select-end(PRIMARY, CLIPBOARD, CUT_BUFFER0)
+xterm*saveLines::        10000

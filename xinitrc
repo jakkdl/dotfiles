@@ -1,15 +1,65 @@
 #!/bin/sh
+#
+# ~/.xinitrc
+#
+# Executed by startx (run your window manager from here)
 
-setxkbmap dvorak
-setxkbmap -option terminate:ctrl_alt_bksp
-if [ $HOSTNAME = "chlorine" ]; then
-    xmodmap .config/xmodmap/chlorine
+if [ -d /etc/X11/xinit/xinitrc.d ]; then
+  for f in /etc/X11/xinit/xinitrc.d/*; do
+    [ -x "$f" ] && . "$f"
+  done
+  unset f
 fi
 
-xbindkeys -f .config/xbindkeys.conf
+# Configure two screens. It doesn't work to do it all at once
+#~/.config/xrandr/1.sh
+#~/.config/xrandr/2.sh
 
-xrdb -merge .Xresources
+# set uzbl download directiory
+#export UZBL_DOWNLOAD_DIR=/home/hatten/Var/downloads
 
+# Haven't touched this one, guess it's useful
+[[ -f ~/.Xresources ]] && xrdb -merge ~/.Xresources
+
+# For some reason åäö doesn't work in firefox and uzbl if i set se keymap only in X
+#therefore I have to set it here too.
+#setxkbmap se
+
+# Remaps to dvorak with åäö, requires a swedish keymap to work on
+#xmodmap ~/.config/xmodmap/dvorak_åäö
+
+# Start mpd
+#mpd ~/.config/mpd/config
+
+# Start f.lux - warms the screen during night
+#xflux -l 58.24 -g 15.37
+
+#Add ~/bin to path so dmenu can run user scripts
+export PATH=$PATH:~/bin
+
+#Start xbindkeys, enables volume control on alt-scroll
+xbindkeys -f ~/.config/xbindkeys.conf
+
+#xmodmap!
+if [ $HOSTNAME = "chlorine" ]; then
+    setxkbmap dvorak
+    xmodmap .config/xmodmap/chlorine
+else if [ $HOSTNAME = "sulfur" ]; then
+    xmodmap ~/.config/xmodmap/software_remapping_teck.xmodmap
+fi
+setxkbmap -option terminate:ctrl_alt_bksp
+
+# turn off screensaver??
 xset s off
 
-herbstluftwm
+# Start pulseaudio
+#/usr/bin/start-pulseaudio-x11 &
+# Szreder magic
+#pactl load-module module-combine-sink sink_name=StreamOutput slaves=alsa_output.pci-0000_05_01.0.analog-stereo
+
+#Get some programs working properly, such as Matlab
+wmname LG3D
+
+# Death to the mice!
+exec herbstluftwm --locked
+#exec openbox
