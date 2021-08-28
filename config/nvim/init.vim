@@ -15,6 +15,7 @@ Plug 'ntpeters/vim-better-whitespace' " :help better-whitespace
 Plug 'tpope/vim-fugitive'
 Plug 'ayu-theme/ayu-vim' " https://github.com/ayu-theme/ayu-vim
 Plug 'morhetz/gruvbox' " Another theme
+Plug 'mxw/vim-prolog'
 
 " Initialize plugin system
 call plug#end()
