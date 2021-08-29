@@ -8,23 +8,26 @@ hc() {
 
 hc emit_hook reload
 
-xsetroot -solid '#000000'
+#xsetroot -solid '#000000'
 
 # remove all existing keybindings
 hc keyunbind --all
 
 # keybindings
 # if you have a super key you will be much happier with Mod set to Mod4
-#Mod=Mod1    # Use alt as the main modifier
-Mod=Mod4   # Use the super key as the main modifier
+if [ "$HOSTNAME" = "sulfur" ]; then
+    Mod=Mod1    # Use alt as the main modifier
+elif [ "$HOSTNAME" = "sulfur" ]; then
+    Mod=Mod4   # Use the super key as the main modifier
+else
+    Mod=Mod1
+fi
 #####Mod=Mod5   # Use alt gr as the main modifier --does not work!
 
 hc keybind $Mod-Control-Shift-q quit
 hc keybind $Mod-Shift-r reload
-hc keybind $Mod-Shift-c close
+hc keybind $Mod-Shift-c close_or_remove
 hc keybind $Mod-Return spawn dmenu_run
-hc keybind $Mod-d spawn ~/.config/herbstluftwm/maim.sh
-hc keybind $Mod-Shift-d spawn ~/.config/herbstluftwm/maim2.sh
 hc keybind $Mod-t spawn xterm
 
 # basic movement
@@ -67,12 +70,14 @@ hc keybind $Mod-Control-Up      resize up +$resizestep
 hc keybind $Mod-Control-Right   resize right +$resizestep
 
 # tags
-tag_names=( {1..9} )
+# I don't think this 0 works...
+tag_names=( {1..9} 0)
 tag_keys=( {1..9} 0 )
-
 hc rename default "${tag_names[0]}" || true
 for i in ${!tag_names[@]} ; do
+    #if [ $(hc tag_status | wc -w) -ne 9 ]; then
     hc add "${tag_names[$i]}"
+    #fi
     key="${tag_keys[$i]}"
     if ! [ -z "$key" ] ; then
         hc keybind "$Mod-$key" use_index "$i"
@@ -81,35 +86,46 @@ for i in ${!tag_names[@]} ; do
 done
 
 # cycle through tags
-hc keybind $Mod-period use_index +1 --skip-visible
-hc keybind $Mod-comma  use_index -1 --skip-visible
+#hc keybind $Mod-period use_index +1 --skip-visible
+#hc keybind $Mod-comma  use_index -1 --skip-visible
 
 # layouting
-hc keybind $Mod-r remove
+#hc keybind $Mod-r remove
 hc keybind $Mod-space cycle_layout 1
 hc keybind $Mod-s floating toggle
 hc keybind $Mod-f fullscreen toggle
-hc keybind $Mod-p pseudotile toggle
+#hc keybind $Mod-p pseudotile toggle
 
 # mouse
 hc mouseunbind --all
 hc mousebind $Mod-Button1 move
-hc mousebind $Mod-Button2 zoom
-hc mousebind $Mod-Button3 resize
+hc mousebind $Mod-Button2 resize
+hc mousebind $Mod-Button3 zoom
 
 # focus
 hc keybind $Mod-BackSpace   cycle_monitor
 hc keybind $Mod-Tab         cycle_all +1
-hc keybind $Mod-Shift-Tab   cycle_all -1
-hc keybind $Mod-c cycle
+#hc keybind $Mod-Shift-Tab   cycle_all -1
+#hc keybind $Mod-c cycle
 hc keybind $Mod-i jumpto urgent
+
+# Custom
+hc keybind $Mod-d spawn ~/.config/herbstluftwm/maim.sh #take partial screenshot
+hc keybind $Mod-Shift-d spawn ~/.config/herbstluftwm/maim2.sh #take full screenshot
+hc keybind $Mod-r spawn ~/.config/herbstluftwm/rename_tag.sh
+hc keybind $Mod-Shift-f spawn ~/.config/herbstluftwm/toggle_full.sh
+hc keybind $Mod-m spawn ~/bin/toggle_default_sink
+hc keybind $Mod-p spawn mpc toggle
+hc keybind $Mod-Control-y spawn ~/bin/sus
+#hc keybind $Mod-m spawn amixer -c 0 set 'Audigy Analog/Digital Output Jack' toggle
+#hc keybind $Mod- spawn beep
 
 # theme
 hc attr theme.tiling.reset 1
 hc attr theme.floating.reset 1
 hc set frame_border_active_color '#222222'
-hc set frame_border_normal_color '#000000'
-#hc set frame_border_normal_color '#101010'
+#hc set frame_border_normal_color '#000000'
+hc set frame_border_normal_color '#101010'
 hc set frame_bg_normal_color '#565656'
 hc set frame_bg_active_color '#345F0C'
 hc set frame_border_width 1
@@ -157,7 +173,7 @@ hc unlock
 herbstclient set tree_style '╾│ ├└╼─┐'
 
 # do multi monitor setup here, e.g.:
-# hc set_monitors 1280x1024+0+0 1280x1024+1280+0
+#hc set_monitors 1280x1024+0+0 1920x1080+1280+0 1280x1024+3200+0
 # or simply:
 hc detect_monitors
 

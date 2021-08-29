@@ -68,12 +68,14 @@ hc pad $monitor $panel_height
         sleep 10s || break
     done > >(uniq_linebuffered) &
 
-    while true ; do
-        # battery status is checked once a minute, but an event is only
-        # generated if the output changed compared to the previous run.
-        /home/h/.config/herbstluftwm/bat.py
-        sleep 1m || break
-    done > >(uniq_linebuffered) &
+    if [ -d /sys/class/power_supply/Bat0 ]; then
+        while true ; do
+            # battery status is checked once a minute, but an event is only
+            # generated if the output changed compared to the previous run.
+            /home/h/.config/herbstluftwm/bat.py
+            sleep 1m || break
+        done > >(uniq_linebuffered) &
+    fi
 
     while true ; do
         if read line; then
@@ -84,7 +86,7 @@ hc pad $monitor $panel_height
 
     #mpc idleloop player &
     while true ; do
-        # "date" output is checked once a second, but an event is only
+        # "date" output is checked once a minute, but an event is only
         # generated if the output changed compared to the previous run.
         date +$'date\t^fg(#909090)%Y-%m-^fg(#efefef)%d'
         sleep 1m || break
@@ -94,6 +96,7 @@ hc pad $monitor $panel_height
     kill $childpid
 } 2> /dev/null | {
     IFS=$'\t' read -ra tags <<< "$(hc tag_status $monitor)"
+    tag_count=$(echo $(hc tag_status $monitor) | wc -w)
     visible=true
     date=""
     windowtitle=""
@@ -106,13 +109,15 @@ hc pad $monitor $panel_height
         bordercolor="#26221C"
         separator="^bg()^fg($selbg)|"
         # draw tags
-        for i in "${tags[@]}" ; do
-            case ${i:0:1} in
-                '#')
+        #for i in "${tags[@]}" ; do
+        for i in `seq 0 $(($tag_count-1))`; do
+            #case ${i:0:1} in
+            case ${tags[$i]:0:1} in
+                '#'|'+')
                     echo -n "^bg($selbg)^fg($selfg)"
                     ;;
-                '+')
-                    echo -n "^bg(#9CA668)^fg(#141414)"
+                '-'|'%')
+                    echo -n "^bg(#D00000)^fg(#141414)"
                     ;;
                 ':')
                     echo -n "^bg()^fg(#ffffff)"
@@ -124,26 +129,34 @@ hc pad $monitor $panel_height
                     echo -n "^bg()^fg(#ababab)"
                     ;;
             esac
-            if [ ! -z "$dzen2_svn" ] ; then
-                # clickable tags if using SVN dzen
-                echo -n "^ca(1,\"${herbstclient_command[@]:-herbstclient}\" "
-                echo -n "focus_monitor \"$monitor\" && "
-                echo -n "\"${herbstclient_command[@]:-herbstclient}\" "
-                echo -n "use \"${i:1}\") ${i:1} ^ca()"
+#           if false; then # [ ! -z "$dzen2_svn" ] ; then
+#               # clickable tags if using SVN dzen
+#               echo -n "^ca(1,\"${herbstclient_command[@]:-herbstclient}\" "
+#               echo -n "focus_monitor \"$monitor\" && "
+#               echo -n "\"${herbstclient_command[@]:-herbstclient}\" "
+#               echo -n "use \"${i:1}\") ${i:1} ^ca()"
+#           else
+            # non-clickable tags if using older dzen
+            if (($i+1 == ${tags[$i]:1})) || (($i+1-10 == ${tags[$i]:1})); then
+                echo -n " ${tags[$i]:1} "
             else
-                # non-clickable tags if using older dzen
-                echo -n " ${i:1} "
+                echo -n " $((i+1)):${tags[$i]:1} "
+                #echo -n " ${i:1} "
             fi
         done
         echo -n "$separator"
-        echo -n "^bg()^fg() ${windowtitle//^/^^}"
+        #echo -n "^bg()^fg() ${windowtitle//^/^^}"
+        current_monitor=$(herbstclient list_monitors | grep FOCUS | cut -c 1)
+        if [ $current_monitor -eq $monitor ]; then
+          #echo -n "^bg(#9fbc00)^fg(#000000) ${windowtitle//^/^^}"
+          printf " %-80s" "^bg(#9fbc00)^fg(#000000) ${windowtitle//^/^^}^bg()"
+        fi
 
         if [ -z "$volume" ]; then
             volume="^fg(#00ff00)VOL "$(pactl get-sink-volume @DEFAULT_SINK@ | cut -d ' ' -f 6)
         fi
         # small adjustments
-        #bat=$(/home/h/.config/herbstluftwm/bat.py)
-        #mem=$(/home/h/.config/herbstluftwm/mem.py)
+        #right="$separator^bg() $date $separator"
         right="$volume $separator $ram $separator $bat^bg() $date $separator"
         right_text_only=$(echo -n "$right" | sed 's.\^[^(]*([^)]*)..g')
         # get width of right aligned text.. and add some space..
@@ -212,7 +225,8 @@ hc pad $monitor $panel_height
     ### dzen2 ###
     # After the data is gathered and processed, the output of the previous block
     # gets piped to dzen2.
+    #-e 'button3=;button4=exec:herbstclient use_index -1;button5=exec:herbstclient use_index +1' \
 
 } 2> ~/.config/herbstluftwm/panel_error | dzen2 -w $panel_width -x $x -y $y -fn "$font" -h $panel_height \
-    -e 'button3=;button4=exec:herbstclient use_index -1;button5=exec:herbstclient use_index +1' \
+    -e 'button3=;button4=;button5=' \
     -ta l -bg "$bgcolor" -fg '#efefef'
