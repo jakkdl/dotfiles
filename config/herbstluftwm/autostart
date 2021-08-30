@@ -15,9 +15,12 @@ hc keyunbind --all
 
 # keybindings
 # if you have a super key you will be much happier with Mod set to Mod4
+if [ -z "$HOSTNAME" ]; then
+    HOSTNAME=$HOST
+fi
 if [ "$HOSTNAME" = "sulfur" ]; then
     Mod=Mod1    # Use alt as the main modifier
-elif [ "$HOSTNAME" = "sulfur" ]; then
+elif [ "$HOSTNAME" = "chlorine" ]; then
     Mod=Mod4   # Use the super key as the main modifier
 else
     Mod=Mod1

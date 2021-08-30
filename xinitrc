@@ -41,12 +41,8 @@ export PATH=$PATH:~/bin
 xbindkeys -f ~/.config/xbindkeys.conf
 
 #xmodmap!
-if [ $HOSTNAME = "chlorine" ]; then
-    setxkbmap dvorak
-    xmodmap .config/xmodmap/chlorine
-else if [ $HOSTNAME = "sulfur" ]; then
-    xmodmap ~/.config/xmodmap/software_remapping_teck.xmodmap
-fi
+#xmodmap ~/.config/xmodmap/software_remapping_teck.xmodmap
+~/.config/xmodmap/set_keymap.sh
 setxkbmap -option terminate:ctrl_alt_bksp
 
 # turn off screensaver??

@@ -77,11 +77,18 @@ hc pad $monitor $panel_height
         done > >(uniq_linebuffered) &
     fi
 
-    while true ; do
+    tail -f /home/h/.config/herbstluftwm/mpc_volume_monitor 2>/dev/null | while true ; do
         if read line; then
-            echo -e "volume\t$line"
+            echo -e "mpc_volume\tMPC $line "
         fi
-    done < /home/h/.config/herbstluftwm/volume_fifo > >(uniq_linebuffered) &
+    done  > >(uniq_linebuffered) &
+
+    tail -f /home/h/.config/herbstluftwm/volume_monitor 2>/dev/null | while true ; do
+        if read line; then
+            volvol="^fg(#00ff00)VOL "$(pactl get-sink-volume @DEFAULT_SINK@ | cut -d ' ' -f 6)
+            echo -e "volume\t$volvol"
+        fi
+    done  > >(uniq_linebuffered) &
 
 
     #mpc idleloop player &
@@ -152,12 +159,9 @@ hc pad $monitor $panel_height
           printf " %-80s" "^bg(#9fbc00)^fg(#000000) ${windowtitle//^/^^}^bg()"
         fi
 
-        if [ -z "$volume" ]; then
-            volume="^fg(#00ff00)VOL "$(pactl get-sink-volume @DEFAULT_SINK@ | cut -d ' ' -f 6)
-        fi
         # small adjustments
         #right="$separator^bg() $date $separator"
-        right="$volume $separator $ram $separator $bat^bg() $date $separator"
+        right="$volume $mpc_volume$separator $ram $separator $bat^bg() $date $separator"
         right_text_only=$(echo -n "$right" | sed 's.\^[^(]*([^)]*)..g')
         # get width of right aligned text.. and add some space..
         width=$($textwidth "$font" "$right_text_only    ")
@@ -219,6 +223,9 @@ hc pad $monitor $panel_height
             volume)
                 volume="${cmd[@]:1}"
                 ;;
+            mpc_volume)
+                mpc_volume="${cmd[@]:1}"
+                ;;
         esac
     done
 
@@ -227,6 +234,6 @@ hc pad $monitor $panel_height
     # gets piped to dzen2.
     #-e 'button3=;button4=exec:herbstclient use_index -1;button5=exec:herbstclient use_index +1' \
 
-} 2> ~/.config/herbstluftwm/panel_error | dzen2 -w $panel_width -x $x -y $y -fn "$font" -h $panel_height \
+} | dzen2 -w $panel_width -x $x -y $y -fn "$font" -h $panel_height \
     -e 'button3=;button4=;button5=' \
     -ta l -bg "$bgcolor" -fg '#efefef'
