@@ -68,6 +68,10 @@ hc pad $monitor $panel_height
         sleep 10s || break
     done > >(uniq_linebuffered) &
 
+    while true ; do
+        /home/h/.config/herbstluftwm/mpc_state.py || sleep 30s
+    done > >(uniq_linebuffered) &
+
     if [ -d /sys/class/power_supply/Bat0 ]; then
         while true ; do
             # battery status is checked once a minute, but an event is only
@@ -91,7 +95,7 @@ hc pad $monitor $panel_height
     done  > >(uniq_linebuffered) &
 
 
-    #mpc idleloop player &
+    mpc idleloop player > >(uniq_linebuffered) &
     while true ; do
         # "date" output is checked once a minute, but an event is only
         # generated if the output changed compared to the previous run.
@@ -161,10 +165,16 @@ hc pad $monitor $panel_height
 
         # small adjustments
         #right="$separator^bg() $date $separator"
-        right="$volume $mpc_volume$separator $ram $separator $bat^bg() $date $separator"
+        right="$volume $mpc_volume$mpc_state$separator $ram $separator $bat^bg() $date $separator"
         right_text_only=$(echo -n "$right" | sed 's.\^[^(]*([^)]*)..g')
         # get width of right aligned text.. and add some space..
         width=$($textwidth "$font" "$right_text_only    ")
+
+        if [[ "$right" == *">"* ]]; then
+            let width+=$($textwidth "$font" ">")
+            let width+=2
+            #width=$(($width + 20))
+        fi
         echo -n "^pa($(($panel_width - $width)))$right"
         echo
 
@@ -189,6 +199,7 @@ hc pad $monitor $panel_height
                 date="${cmd[@]:1}"
                 ;;
             quit_panel)
+                pkill -f "bash /home/h/.config/herbstluftwm/panel.sh 0"
                 exit
                 ;;
             togglehidepanel)
@@ -209,6 +220,7 @@ hc pad $monitor $panel_height
                 fi
                 ;;
             reload)
+                pkill -f "bash /home/h/.config/herbstluftwm/panel.sh 0"
                 exit
                 ;;
             focus_changed|window_title_changed)
@@ -226,6 +238,8 @@ hc pad $monitor $panel_height
             mpc_volume)
                 mpc_volume="${cmd[@]:1}"
                 ;;
+            mpc_state)
+                mpc_state="${cmd[@]:1}"
         esac
     done
 
