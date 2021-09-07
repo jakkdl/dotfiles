@@ -220,7 +220,7 @@ hc pad $monitor $panel_height
                 fi
                 ;;
             reload)
-                pkill -f "bash /home/h/.config/herbstluftwm/panel.sh 0"
+                pkill -f "bash /home/h/.config/herbstluftwm/panel.sh"
                 exit
                 ;;
             focus_changed|window_title_changed)
