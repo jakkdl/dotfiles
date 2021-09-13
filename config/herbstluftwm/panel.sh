@@ -89,7 +89,7 @@ hc pad $monitor $panel_height
 
     tail -f /home/h/.config/herbstluftwm/volume_monitor 2>/dev/null | while true ; do
         if read line; then
-            volvol="^fg(#00ff00)VOL "$(pactl get-sink-volume @DEFAULT_SINK@ | cut -d ' ' -f 6)
+            volvol="^fg(#00ff00)VOL "$(pactl get-sink-volume @DEFAULT_SINK@ | xargs | cut -d ' ' -f 5)
             echo -e "volume\t$volvol"
         fi
     done  > >(uniq_linebuffered) &
