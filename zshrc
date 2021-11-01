@@ -24,7 +24,8 @@ fi
 
 # PATH modifications
 # requested by pip for mypy
-path+=('/home/hatten/.local/bin')
+path+=('/home/h/.local/bin')
+path+=('/home/h/Bin')
 # export to sub-processes (make it inherited by child processes)
 export PATH
 

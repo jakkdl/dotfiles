@@ -89,8 +89,8 @@ for i in ${!tag_names[@]} ; do
 done
 
 # cycle through tags
-#hc keybind $Mod-period use_index +1 --skip-visible
-#hc keybind $Mod-comma  use_index -1 --skip-visible
+hc keybind $Mod-period use_index +1 --skip-visible
+hc keybind $Mod-comma  use_index -1 --skip-visible
 
 # layouting
 #hc keybind $Mod-r remove
@@ -157,7 +157,7 @@ hc set smart_frame_surroundings 1
 hc set mouse_recenter_gap 0
 
 # set default layout to horizontal
-hc set default_frame_layout 1
+hc set default_frame_layout 0
 
 # rules
 hc unrule -F
