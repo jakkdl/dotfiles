@@ -157,7 +157,7 @@ hc set smart_frame_surroundings 1
 hc set mouse_recenter_gap 0
 
 # set default layout to horizontal
-hc set default_frame_layout 1
+hc set default_frame_layout 0
 
 # rules
 hc unrule -F
