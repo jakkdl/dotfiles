@@ -146,14 +146,16 @@ path+=('/home/h/Bin')
 export PATH
 
 alias l='/usr/bin/ls --color=auto --group-directories-first'
+alias ls=l
 alias ll='/usr/bin/ls -lh --color=auto --group-directories-first'
 alias vim=nvim
-alias ls='echo "use l or ll"'
 alias pylint='pylint -f colorized'
 
 # or use -i ?
-alias mv='mv -vb'
-alias cp='cp -vb'
+alias mv='mv -vi'
+alias cp='cp -vi'
+alias rm='rm -vI'
+alias ln='ln -vi'
 
 alias movie='mplayer -vf expand=::0:0::16/9 -af scaletempo'
 
