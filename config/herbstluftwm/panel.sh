@@ -72,7 +72,7 @@ hc pad $monitor $panel_height
         /home/h/.config/herbstluftwm/mpc_state.py || sleep 30s
     done > >(uniq_linebuffered) &
 
-    if [ -d /sys/class/power_supply/Bat0 ]; then
+    if [ -d /sys/class/power_supply/BAT0 ]; then
         while true ; do
             # battery status is checked once a minute, but an event is only
             # generated if the output changed compared to the previous run.
