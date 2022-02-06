@@ -15,7 +15,7 @@ Plug 'ntpeters/vim-better-whitespace' " :help better-whitespace
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-eunuch'
 Plug 'ayu-theme/ayu-vim' " https://github.com/ayu-theme/ayu-vim
-Plug 'morhetz/gruvbox' " Another theme
+" Plug 'morhetz/gruvbox' " Another theme
 Plug 'mxw/vim-prolog'
 
 " Initialize plugin system
@@ -52,10 +52,10 @@ call plug#end()
 " colorscheme ayu
 
 " ### Gruvbox
-set termguicolors     " enable true colors support
-autocmd vimenter * ++nested colorscheme gruvbox
-set background=dark    " Setting dark mode
-let g:gruvbox_contrast_dark = 'hard'
+" set termguicolors     " enable true colors support
+" autocmd vimenter * ++nested colorscheme gruvbox
+" set background=dark    " Setting dark mode
+" let g:gruvbox_contrast_dark = 'hard'
 
 " #######################
 " General configuration
@@ -95,6 +95,9 @@ set wildmenu
 " cscope
 set cscopeverbose
 set cscopequickfix=s-,c-,d-,i-,t-,e-
+
+"enable folds
+set foldmethod=syntax
 
 " load same-folder init.vim
 if filereadable("init.vim")

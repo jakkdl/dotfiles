@@ -92,6 +92,7 @@ if [[ -n $SSH_CONNECTION ]]; then
 else
   export EDITOR='nvim'
 fi
+export VISUAL=$EDITOR
 
 # Compilation flags
 export ARCHFLAGS="-arch x86_64"
@@ -138,6 +139,12 @@ if [[ ! "$SSH_AUTH_SOCK" ]]; then
     source "$XDG_RUNTIME_DIR/ssh-agent.env" >/dev/null
 fi
 
+# initialize/load gnome-keyring
+if [ -n "$DESKTOP_SESSION" ];then
+    eval $(gnome-keyring-daemon --start)
+    export SSH_AUTH_SOCK
+fi
+
 # PATH modifications
 # requested by pip for mypy
 path+=('/home/h/.local/bin')
@@ -158,4 +165,8 @@ alias rm='rm -vI'
 alias ln='ln -vi'
 
 alias movie='mplayer -vf expand=::0:0::16/9 -af scaletempo'
+alias plocate='plocate -d /home/h/.local/share/plocate/home.db'
+
+#TODO: automatically update plocate database, and write alias to use the one in
+#home
 
