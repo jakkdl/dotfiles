@@ -156,6 +156,7 @@ alias l='/usr/bin/ls --color=auto --group-directories-first'
 alias ls=l
 alias ll='/usr/bin/ls -lh --color=auto --group-directories-first'
 alias vim=nvim
+alias vimdiff='nvim -d'
 alias pylint='pylint -f colorized'
 
 # or use -i ?
