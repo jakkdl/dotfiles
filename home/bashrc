@@ -1,6 +1,11 @@
+#
+# ~/.bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
 
 # initialize or load ssh-agent
-
 if ! pgrep -u "$USER" ssh-agent > /dev/null; then
     ssh-agent -t 1h > "$XDG_RUNTIME_DIR/ssh-agent.env"
 fi
@@ -10,23 +15,27 @@ fi
 
 
 
-set -o vi
+yt() { mplayer -af scaletempo "$@" ; rm -i "$@" && rmdir --ignore-fail-on-non-empty *; }
 set +o noclobber
 export VISUAL=vim
 export EDITOR="$VISUAL"
-export PS1='\[\033[0;32m\][\[\033[0m\033[0;36m\]\u\[\033[0;32m\]@\[\033[0m\033[0;36m\]\h\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\t\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\w\[\033[0;32m\]]\n\[\033[0;32m\]=[\[\033[0m\033[0;36m\]\$\[\033[0;32m\]]>\[\033[0m\] '
+#export PS1='\[\033[0;32m\][\[\033[0m\033[0;36m\]\u\[\033[0;32m\]@\[\033[0m\033[0;36m\]\h\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\t\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\w\[\033[0;32m\]]\n\[\033[0;32m\]=[\[\033[0m\033[0;36m\]\$\[\033[0;32m\]]>\[\033[0m\] '
 export IGNOREEOF=0
 
 LANG="en_US.UTF-8"
 
-#alias touch="echo -n '' >>"
 alias l='ls -Fh --color'
 alias ll='ls -lh --color'
-alias g++11='\g++  -std=c++11 -Wall -Wextra -Wpedantic -Weffc++ -L/sw/gcc-4.9.1/lib -static-libstdc++ -g'
+#alias l='/usr/bin/ls --color=auto --group-directories-first'
+#alias ll='/usr/bin/ls -lh --color=auto --group-directories-first'
+alias g++11='\g++  -std=c++11 -Wall -Wextra -Wpedantic -Weffc++'
 alias pylint='pylint -f colorized'
 alias vim=nvim
 alias mv='mv -vb'
 alias cp='cp -i'
+alias mf='sudo mount -o gid=users,fmask=113,dmask=002'
+alias mu='sudo mount -o gid=users'
+alias adf='df -hT -x tmpfs -x devtmpfs'
 
 alias sshliu='ssh johli603@ssh.edu.liu.se'
 
@@ -35,16 +44,64 @@ zathura () {
 }
 
 ansi () {
-  \gcc -ansi -Wall -Wextra -Wpedantic $1 -lm
+  \gcc -ansi -Wall -Wextra -Wpedantic -g $1 -lm
 }
 
 gansi () {
   \gcc -ansi -g -Wall -Wextra -Wpedantic $1 -lm
-}
 
-c99 () {
-    gcc -Wall -Wextra -Wpedantic -std=gnu99 -g $@ -lm
-}
+source /usr/share/git/completion/git-completion.bash
+source /usr/share/git/completion/git-prompt.sh
+# Set prompt
+#PS1='[\u@\h \W]\$ '
+GREEN='\[\033[0;32m\]'
+RESET='\[\033[0m'
+TEAL='\[\033[0;36m\]'
+function prompt_command() {
+        UPGRADES="$(pacman -Qu | wc -l)"
+        if [[ $UPGRADES = 0 ]]; then
+          U_FIELD=''
+        else
+          U_FIELD='$UPGRADES\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\W\[\033[0;32m\]]\n\[\033[0;32m\]╚═══[\[\033[0m\033[0;36m\]'
+        fi 
 
-# TDIU16 pintos
-export PATH=$PATH:~/Bin:$HOME/Courses/tdiu16/pintos/src/utils
+	END=$GREEN'=['$TEAL'\W'$GREEN']'
+	NEWLINE=$GREEN'\n╚═══['$TEAL
+        git='$(__git_ps1 "=[\033[0;36m%s\033[0;32m]")'
+
+        common=$GREEN'╔═['$TEAL'\h'$GREEN']═['$TEAL'\t'$GREEN']'
+        endcommon='$'$GREEN']> '$TEAL
+	#trap $RESET DEBUG
+#=═
+
+        orig1=$common$U_FIELD$END$git$NEWLINE$endcommon
+	PS1=$orig1
+}
+PROMPT_COMMAND=prompt_command
+
+
+
+
+#set vi-like editing
+set -o vi
+
+#source /home/hatten/Code/bash/merge_history
+HISTCONTROL=ignoredups
+HISTSIZE=50000
+HISTFILESIZE=50000
+shopt -s histappend
+#PROMPT_COMMAND="history -a"
+
+
+binpath=/home/hatten/bin/
+
+export LD_LIBRARY_PATH=$binpath/python:$LD_LIBRARY_PATH
+export PYTHONPATH=$binpath/python:$PYTHONPATH
+export PATH=$binpath:/home/hatten/.local/bin/:$PATH
+
+export ANDROID_HOME=/opt/android-sdk
+
+export ARDUINO_PATH=/usr/share/arduino
+
+#change default ipython dir from ~/.ipython
+export IPYTHONDIR=/home/hatten/.config/ipython/
