@@ -25,7 +25,10 @@ def handle_folder(folder, replace, prefix=''):
             target = os.path.relpath(real_target_path, basepath)
             if not (os.path.isfile(path) or os.path.islink(path)):
                 print(f'{path} not a file')
-                fix(path, target)
+                if folder == 'home':
+                    fix(path, target)
+                elif folder == 'root':
+                    fix(path, real_target_path)
                 continue
             elif not os.path.islink(path):
                 print(f'{path} not a symlink')
@@ -34,10 +37,14 @@ def handle_folder(folder, replace, prefix=''):
             if actual_target != target and actual_target != real_target_path:
                 print(f'{path} incorrect target\n\t{actual_target} '
                         f'should be\n\t{target}')
-                fix(path, target)
+                if folder == 'home':
+                    fix(path, target)
+                elif folder == 'root':
+                    fix(path, real_target_path)
 
 def fix(path, target):
     if 'home' not in path:
+        print(target)
         print(f'run: sudo ln -s {os.path.realpath(target)} {path}')
         return
     if input(f'\tresolve? [Y/n]: ').strip() != 'n':
