@@ -12,7 +12,8 @@ def poop(file):
         return
 
     if os.path.islink(link):
-        print(f'you may want to remove symlink {link}')
+        print(f'You may want to remove symlink {link}\n')
+
 hook = os.path.split(__file__)[-1]
 if hook == 'post-commit':
     old_commit = 'HEAD~1'
@@ -27,7 +28,6 @@ for line in lines:
     status = line.split('\t')
     if status[0] == 'A':
         continue
-    #pprint.pprint(status)
     if status[0] == 'D':
         poop(status[1])
     if status[0][0] == 'R':
