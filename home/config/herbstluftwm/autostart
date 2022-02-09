@@ -31,7 +31,7 @@ hc keybind $Mod-Control-Shift-q quit
 hc keybind $Mod-Shift-r reload
 hc keybind $Mod-Control-c close_or_remove
 hc keybind $Mod-Return spawn dmenu_run
-hc keybind $Mod-t spawn xterm
+hc keybind $Mod-t spawn urxvt
 
 # basic movement
 # focusing clients

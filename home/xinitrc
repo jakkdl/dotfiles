@@ -42,8 +42,8 @@ xbindkeys -f ~/.config/xbindkeys.conf
 
 #xmodmap!
 #xmodmap ~/.config/xmodmap/software_remapping_teck.xmodmap
-/home/h/.config/xmodmap/set_keymap.sh
 setxkbmap -option terminate:ctrl_alt_bksp
+/home/h/.config/xmodmap/set_keymap.sh
 
 # turn off screensaver??
 xset s off
