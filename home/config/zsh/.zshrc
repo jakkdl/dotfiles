@@ -1,6 +1,42 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
+# Set XDG Base Directories
+## Where user-specific configurations should be written (analogous to /etc).
+XDG_CONFIG_HOME=$HOME/.config
+## Where user-specific non-essential (cached) data should be written (analogous
+## to /var/cache).
+XDG_CACHE_HOME=$HOME/.cache
+## Where user-specific data files should be written (analogous to /usr/share).
+XDG_DATA_HOME=$HOME/.local/share.
+
+## Where user-specific state files should be written (analogous to /var/lib).
+XDG_STATE_HOME=$HOME/.local/state.
+
+#XDG_RUNTIME_DIR
+#Used for non-essential, user-specific data files such as sockets, named pipes,
+#etc. Not required to have a default value; warnings should be issued if not
+#set or equivalents provided.
+#Must be owned by the user with an access mode of 0700.
+#Filesystem fully featured by standards of OS.
+#Must be on the local filesystem.
+#May be subject to periodic cleanup.
+#Modified every 6 hours or set sticky bit if persistence is desired.
+#Can only exist for the duration of the users login.
+#Should not store large files as it may be mounted as a tmpfs.
+#pam_systemd sets this to /run/user/$UID.
+
+## System directories
+XDG_DATA_DIRS=/usr/local/share:/usr/share.
+XDG_CONFIG_DIRS=/etc/xdg.
+
+# Make zsh use XDG directories
+export HISTFILE="$XDG_STATE_HOME"/zsh/history
+
+compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION [316] /!\ The folder needs to exist
+
+zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
+
 # Path to your oh-my-zsh installation.
 ZSH=/usr/share/oh-my-zsh/
 
@@ -170,4 +206,5 @@ alias plocate='plocate -d /home/h/.local/share/plocate/home.db'
 
 #TODO: automatically update plocate database, and write alias to use the one in
 #home
+
 
