@@ -50,6 +50,9 @@ def fix(path, target):
     if input(f'\tresolve? [Y/n]: ').strip() != 'n':
         if os.path.islink(path):
             os.remove(path)
+        if not os.path.isdir(os.path.dirname(path)):
+            print(f'creating directory {os.path.dirname(path)}')
+            os.makedirs(os.path.dirname(path))
         os.symlink(target, path)
 
 if __name__ == '__main__':
