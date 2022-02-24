@@ -1,41 +1,10 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
-# Set XDG Base Directories
-## Where user-specific configurations should be written (analogous to /etc).
-XDG_CONFIG_HOME=$HOME/.config
-## Where user-specific non-essential (cached) data should be written (analogous
-## to /var/cache).
-XDG_CACHE_HOME=$HOME/.cache
-## Where user-specific data files should be written (analogous to /usr/share).
-XDG_DATA_HOME=$HOME/.local/share.
-
-## Where user-specific state files should be written (analogous to /var/lib).
-XDG_STATE_HOME=$HOME/.local/state.
-
-#XDG_RUNTIME_DIR
-#Used for non-essential, user-specific data files such as sockets, named pipes,
-#etc. Not required to have a default value; warnings should be issued if not
-#set or equivalents provided.
-#Must be owned by the user with an access mode of 0700.
-#Filesystem fully featured by standards of OS.
-#Must be on the local filesystem.
-#May be subject to periodic cleanup.
-#Modified every 6 hours or set sticky bit if persistence is desired.
-#Can only exist for the duration of the users login.
-#Should not store large files as it may be mounted as a tmpfs.
-#pam_systemd sets this to /run/user/$UID.
-
-## System directories
-XDG_DATA_DIRS=/usr/local/share:/usr/share.
-XDG_CONFIG_DIRS=/etc/xdg.
-
-# Make zsh use XDG directories
-export HISTFILE="$XDG_STATE_HOME"/zsh/history
-
-compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION [316] /!\ The folder needs to exist
 
 zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
+
+
 
 # Path to your oh-my-zsh installation.
 ZSH=/usr/share/oh-my-zsh/
@@ -119,19 +88,6 @@ plugins=(
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
-# You may need to manually set your language environment
-export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='vim'
-else
-  export EDITOR='nvim'
-fi
-export VISUAL=$EDITOR
-
-# Compilation flags
-export ARCHFLAGS="-arch x86_64"
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -142,7 +98,7 @@ export ARCHFLAGS="-arch x86_64"
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-ZSH_CACHE_DIR=$HOME/.cache/oh-my-zsh
+export ZSH_CACHE_DIR=$HOME/.cache/oh-my-zsh
 if [[ ! -d $ZSH_CACHE_DIR ]]; then
   mkdir $ZSH_CACHE_DIR
 fi
@@ -150,6 +106,19 @@ fi
 source $ZSH/oh-my-zsh.sh
 
 # end of /usr/share/oh-my-zsh/zshrc
+
+#### ZPLUG ####
+export ZPLUG_HOME=$XDG_DATA_HOME/zplug
+export ZPLUG_CACHE_DIR=$XDG_CACHE_HOME/zplug
+
+source /usr/share/zsh/scripts/zplug/init.zsh
+zplug 'MichaelAquilina/zsh-autoswitch-virtualenv'
+
+# source plugins and add commands to $PATH
+zplug load --verbose
+
+#### zsh-autoswitch-virtualenv ####
+export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
 
 # Lines configured by zsh-newuser-install
 HISTFILE=~/.data/zsh/histfile
@@ -181,13 +150,6 @@ if [ -n "$DESKTOP_SESSION" ];then
     export SSH_AUTH_SOCK
 fi
 
-# PATH modifications
-# requested by pip for mypy
-path+=('/home/h/.local/bin')
-path+=('/home/h/Bin')
-# export to sub-processes (make it inherited by child processes)
-export PATH
-
 alias l='/usr/bin/ls --color=auto --group-directories-first'
 alias ls=l
 alias ll='/usr/bin/ls -lh --color=auto --group-directories-first'
@@ -201,10 +163,11 @@ alias cp='cp -vi'
 alias rm='rm -vI'
 alias ln='ln -vi'
 
+# make sudo use aliases as well
+alias sudo='sudo '
+
 alias movie='mplayer -vf expand=::0:0::16/9 -af scaletempo'
 alias plocate='plocate -d /home/h/.local/share/plocate/home.db'
 
 #TODO: automatically update plocate database, and write alias to use the one in
 #home
-
-

@@ -16,10 +16,19 @@ Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-eunuch'
 Plug 'ayu-theme/ayu-vim' " https://github.com/ayu-theme/ayu-vim
 " Plug 'morhetz/gruvbox' " Another theme
-Plug 'mxw/vim-prolog'
+" Plug 'mxw/vim-prolog'
+Plug 'neomake/neomake'
 
 " Initialize plugin system
 call plug#end()
+
+" #### NEOMAKE ####
+" when to activate neomake
+call neomake#configure#automake('rw')
+
+" which linter to enable for Python source file linting
+let g:neomake_python_enabled_makers = ['pylint', 'mypy', 'vulture']
+let g:neomake_javascript_enablem_makers = ['eslint_d']
 
 " ######################
 " cscope.nvim configuration
@@ -65,6 +74,8 @@ set expandtab
 set shiftwidth=4
 set softtabstop=4
 
+autocmd FileType javascript set shiftwidth=2 set softtabstop=2
+
 " keep the cursor in the middle of the window at all times
 " https://stackoverflow.com/questions/59408739/how-to-bring-the-marker-to-middle-of-the-screen
 set scrolloff=999
@@ -77,7 +88,8 @@ set hidden
 "autocmd FileType python 2mat ErrorMsg '\%81v.'
 " mark characters in the 80th column red, according to PEP-8
 " https://vi.stackexchange.com/a/658
-match ColorColumn "\%80v."
+
+" match ColorColumn "\%89v."
 
 
 " colorscheme desert
@@ -98,10 +110,31 @@ set cscopequickfix=s-,c-,d-,i-,t-,e-
 
 "enable folds
 set foldmethod=syntax
+" Start with open folds
+autocmd FileType * exe "normal zR"
+
+" enable line numbers
+set number
+set relativenumber
 
 " load same-folder init.vim
-if filereadable("init.vim")
-    if getcwd() != "/home/h/.config/nvim"
-        so init.vim
-    endif
-endif
+" if filereadable("init.vim")
+"     if getcwd() != "/home/h/.config/nvim"
+"         so init.vim
+"     endif
+" endif
+
+function MySed(replace = 10)
+    vimgrep /\<'iw'\>/gj' *.py
+endfunction
+
+function MySo()
+    source $MYVIMRC
+endfunction
+
+" local my_sed = function(a)
+"     vim.api.nvim_buf_set_keymap(bufnr, 'n', 'NUUUUU', '"wyiw', opts)
+" end
+
+" map <leader>s :execute "noautocmd vimgrep /\\<" . expand("<cword>") . "\\>/gj **/*." .  expand("%:e") <Bar> cw<CR>
+" map <leader>s :execute "noautocmd vimgrep /\\<" . expand("<cword>") . "\\>/gj **/*." . expand("%:e") <Bar> cfdo "cfdo %s/" . expand("<cword>") . "/"

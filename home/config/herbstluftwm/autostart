@@ -31,7 +31,7 @@ hc keybind $Mod-Control-Shift-q quit
 hc keybind $Mod-Shift-r reload
 hc keybind $Mod-Control-c close_or_remove
 hc keybind $Mod-Return spawn dmenu_run
-hc keybind $Mod-t spawn urxvt
+hc keybind $Mod-t spawn urxvtc
 
 # basic movement
 # focusing clients
@@ -157,7 +157,7 @@ hc set smart_frame_surroundings 1
 hc set mouse_recenter_gap 0
 
 # set default layout to horizontal
-hc set default_frame_layout 0
+hc set default_frame_layout 1
 
 # rules
 hc unrule -F
