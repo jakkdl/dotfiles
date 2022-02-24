@@ -8,4 +8,4 @@ Target = *
 [Action]
 Description = updating zsh tab completion cache
 When = PostTransaction
-Exec = rehash
+Exec = /usr/bin/zsh -c "rehash"

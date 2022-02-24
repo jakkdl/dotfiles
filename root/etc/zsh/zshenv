@@ -1,1 +1,2 @@
 export ZDOTDIR=$HOME/.config/zsh
+export IGNORE_CC_MISMATCH=1
