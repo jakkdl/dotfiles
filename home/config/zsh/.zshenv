@@ -25,7 +25,7 @@ export XDG_STATE_HOME=$HOME/.local/state
 
 ## System directories
 export XDG_DATA_DIRS=/usr/local/share:/usr/share
-export XDG_CONFIG_DIRS=/etc/xdg.
+export XDG_CONFIG_DIRS=/etc/xdg
 
 # Make zsh use XDG directories
 export HISTFILE="$XDG_STATE_HOME"/zsh/history
