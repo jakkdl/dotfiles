@@ -18,6 +18,7 @@ Plug 'ayu-theme/ayu-vim' " https://github.com/ayu-theme/ayu-vim
 " Plug 'morhetz/gruvbox' " Another theme
 " Plug 'mxw/vim-prolog'
 Plug 'neomake/neomake'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " Initialize plugin system
 call plug#end()
@@ -28,7 +29,7 @@ call neomake#configure#automake('rw')
 
 " which linter to enable for Python source file linting
 let g:neomake_python_enabled_makers = ['pylint', 'mypy', 'vulture']
-let g:neomake_javascript_enablem_makers = ['eslint_d']
+" let g:neomake_javascript_enablem_makers = ['eslint_d']
 
 " ######################
 " cscope.nvim configuration
@@ -74,7 +75,8 @@ set expandtab
 set shiftwidth=4
 set softtabstop=4
 
-autocmd FileType javascript set shiftwidth=2 set softtabstop=2
+autocmd FileType javascript,typescript,typescriptreact set shiftwidth=2
+autocmd FileType javascript,typescript,typescriptreact set softtabstop=2
 
 " keep the cursor in the middle of the window at all times
 " https://stackoverflow.com/questions/59408739/how-to-bring-the-marker-to-middle-of-the-screen

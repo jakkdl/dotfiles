@@ -24,7 +24,7 @@ export XDG_STATE_HOME=$HOME/.local/state
 #pam_systemd sets this to /run/user/$UID.
 
 ## System directories
-export XDG_DATA_DIRS=/usr/local/share:/usr/share.
+export XDG_DATA_DIRS=/usr/local/share:/usr/share
 export XDG_CONFIG_DIRS=/etc/xdg.
 
 # Make zsh use XDG directories

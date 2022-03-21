@@ -121,7 +121,7 @@ zplug load --verbose
 export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
 
 # Lines configured by zsh-newuser-install
-HISTFILE=~/.data/zsh/histfile
+HISTFILE=$XDG_DATA_HOME/zsh/histfile
 HISTSIZE=100000
 SAVEHIST=50000
 setopt appendhistory
