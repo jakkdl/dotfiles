@@ -37,4 +37,4 @@ for line in lines:
     if status[0][0] == 'R':
         poop(status[1])
 
-apply_symlinks.main()
+apply_symlinks.main(False)
