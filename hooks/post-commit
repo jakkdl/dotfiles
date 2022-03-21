@@ -1,7 +1,11 @@
 #!/usr/bin/python3
-import subprocess
+import os
 import os.path
-import pprint
+import subprocess
+import sys
+
+sys.path.insert(1, os.getcwd())
+import apply_symlinks
 
 def poop(file):
     if 'root' in file:
@@ -32,3 +36,5 @@ for line in lines:
         poop(status[1])
     if status[0][0] == 'R':
         poop(status[1])
+
+apply_symlinks.main()
