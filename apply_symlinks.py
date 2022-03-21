@@ -5,6 +5,8 @@ import os.path
 def main():
     handle_folder('home', os.path.expanduser('~'), '.')
     handle_folder('root', os.path.expanduser('/'))
+    if not os.path.isfile('vim-plug/plug.vim'):
+        print('run submodule init && submodule update')
 
 def handle_folder(folder, replace, prefix=''):
     #homedir = os.path.expanduser('~')
