@@ -4,11 +4,11 @@ and prompts to create or warns about missing them"""
 import os
 import os.path
 
-def main():
+def main(interactive = True):
     """do all the stuffs"""
     if not (
-            handle_folder('home', os.path.expanduser('~'), '.') or
-            handle_folder('root', os.path.expanduser('/')) or
+            handle_folder('home', os.path.expanduser('~'), interactive, '.') or
+            handle_folder('root', os.path.expanduser('/'), interactive) or
             check_submodules()
             ):
         print("all symlinks OK")
@@ -20,7 +20,7 @@ def check_submodules():
         return True
     return False
 
-def handle_folder(folder, replace, prefix=''):
+def handle_folder(folder, replace, interactive, prefix=''):
     """returns the number of uncorrected errors"""
     assert folder in ('home', 'root')
     errors = 0
@@ -44,7 +44,8 @@ def handle_folder(folder, replace, prefix=''):
 
             if not (os.path.isfile(path) or os.path.islink(path)):
                 print(f'{path} not a file')
-                errors += fix(path, pref_target)
+                errors += fix(path, pref_target, interactive)
+                continue
             elif not os.path.islink(path):
                 print(f'{path} not a symlink')
                 errors += 1
@@ -54,16 +55,18 @@ def handle_folder(folder, replace, prefix=''):
             if actual_target not in (target, real_target_path):
                 print(f'{path} incorrect target\n\t{actual_target} '
                         f'should be\n\t{pref_target}')
-                errors += fix(path, pref_target)
+                errors += fix(path, pref_target, interactive)
     return errors
 
-def fix(path, target):
+def fix(path, target, interactive):
     """fix, or suggest how to fix, an incorrect symlink"""
     if 'home' not in path:
         print(target)
         print(f'run: sudo ln -s {os.path.realpath(target)} {path}')
         return 1
-    if input("\tresolve? [Y/n]: ").strip() != "n":
+    if not interactive:
+        return 1
+    if "n" not in input("\tresolve? [Y/n]: "):
         if os.path.islink(path):
             os.remove(path)
         if not os.path.isdir(os.path.dirname(path)):
