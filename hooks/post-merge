@@ -1,0 +1,40 @@
+#!/usr/bin/python3
+import os
+import os.path
+import subprocess
+import sys
+
+sys.path.insert(1, os.getcwd())
+import apply_symlinks
+
+def poop(file):
+    if 'root' in file:
+        link = file.replace('root', '')
+    elif 'home' in file:
+        link = os.path.join(os.path.expanduser('~'), '.' + file[5:])
+    else:
+        return
+
+    if os.path.islink(link):
+        print(f'You may want to remove symlink {link}\n')
+
+hook = os.path.split(__file__)[-1]
+if hook == 'post-commit':
+    old_commit = 'HEAD~1'
+elif hook == 'post-merge':
+    old_commit = 'ORIG_HEAD'
+k = subprocess.run(["git", "diff", old_commit, 'HEAD', '--name-status'],
+        stdout=subprocess.PIPE, encoding='UTF-8')
+lines = k.stdout.split('\n')
+for line in lines:
+    if not line:
+        continue
+    status = line.split('\t')
+    if status[0] == 'A':
+        continue
+    if status[0] == 'D':
+        poop(status[1])
+    if status[0][0] == 'R':
+        poop(status[1])
+
+apply_symlinks.main()
