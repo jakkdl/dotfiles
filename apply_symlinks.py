@@ -43,7 +43,7 @@ def handle_folder(folder, replace, interactive, prefix=''):
 
             if folder == 'root' and os.access(real_target_path, os.W_OK):
                 print(f"WARNING: dangerous write access, execute:\n"
-                        f"sudo chown root:root {path}")
+                        f"sudo chown root:root {real_target_path}")
             if not (os.path.isfile(path) or os.path.islink(path)):
                 print(f'{path} not a file')
                 errors += fix(path, pref_target, interactive)
