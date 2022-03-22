@@ -41,7 +41,7 @@ def handle_folder(folder, replace, interactive, prefix=''):
             target = os.path.relpath(real_target_path, basepath)
             pref_target = real_target_path if folder == 'root' else target
 
-            if folder == 'root' and os.access(path, os.W_OK):
+            if folder == 'root' and os.access(real_target_path, os.W_OK):
                 print(f"WARNING: dangerous write access, execute:\n"
                         f"sudo chown root:root {path}")
             if not (os.path.isfile(path) or os.path.islink(path)):
