@@ -6,11 +6,11 @@ import os.path
 
 def main(interactive = True):
     """do all the stuffs"""
-    if not (
-            handle_folder('home', os.path.expanduser('~'), interactive, '.') or
-            handle_folder('root', os.path.expanduser('/'), interactive) or
+    if any([
+            handle_folder('home', os.path.expanduser('~'), interactive, '.'),
+            handle_folder('root', os.path.expanduser('/'), interactive),
             check_submodules()
-            ):
+            ]):
         print("all symlinks OK")
 
 def check_submodules():
