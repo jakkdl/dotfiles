@@ -15,10 +15,13 @@ Plug 'ntpeters/vim-better-whitespace' " :help better-whitespace
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-eunuch'
 Plug 'ayu-theme/ayu-vim' " https://github.com/ayu-theme/ayu-vim
+Plug 'vim-airline/vim-airline' 
 " Plug 'morhetz/gruvbox' " Another theme
 " Plug 'mxw/vim-prolog'
 Plug 'neomake/neomake'
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+if filereadable("/usr/bin/node")
+    Plug 'neoclide/coc.nvim', {'branch': 'release'}
+endif
 
 " Initialize plugin system
 call plug#end()
