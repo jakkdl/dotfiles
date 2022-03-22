@@ -2,10 +2,13 @@
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 
+if [[ ! -d $XDG_CACHE_HOME/zsh ]]; then
+  mkdir $XDG_CACHE_HOME/zsh
+fi
 zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 
 
-
+#### oh-my-zsh ####
 # Path to your oh-my-zsh installation.
 ZSH=/usr/share/oh-my-zsh/
 
@@ -13,7 +16,7 @@ ZSH=/usr/share/oh-my-zsh/
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="robbyrussell"
+# ZSH_THEME="robbyrussell"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -31,7 +34,7 @@ ZSH_THEME="robbyrussell"
 # Uncomment one of the following lines to change the auto-update behavior
 # zstyle ':omz:update' mode disabled  # disable automatic updates
 # zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 
 # Uncomment the following line to change how often to auto-update (in days).
 # zstyle ':omz:update' frequency 13
@@ -79,7 +82,7 @@ plugins=(
     colored-man-pages
     gitfast
     git-escape-magic
-    git-prompt
+    #git-prompt
     #github https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/github
 )
 
@@ -107,6 +110,8 @@ source $ZSH/oh-my-zsh.sh
 
 # end of /usr/share/oh-my-zsh/zshrc
 
+
+
 #### ZPLUG ####
 export ZPLUG_HOME=$XDG_DATA_HOME/zplug
 export ZPLUG_CACHE_DIR=$XDG_CACHE_HOME/zplug
@@ -117,10 +122,15 @@ zplug 'MichaelAquilina/zsh-autoswitch-virtualenv'
 # source plugins and add commands to $PATH
 zplug load --verbose
 
+
 #### zsh-autoswitch-virtualenv ####
 export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
 
-# Lines configured by zsh-newuser-install
+
+
+if [[ ! -d $XDG_DATA_HOME/zsh ]]; then
+  mkdir $XDG_DATA_HOME/zsh
+fi
 HISTFILE=$XDG_DATA_HOME/zsh/histfile
 HISTSIZE=100000
 SAVEHIST=50000
@@ -128,6 +138,8 @@ setopt appendhistory
 setopt hist_ignore_dups
 bindkey -v
 # End of lines configured by zsh-newuser-install
+
+
 # The following lines were added by compinstall
 zstyle :compinstall filename '/home/h/.zshrc'
 
@@ -135,8 +147,12 @@ autoload -Uz compinit
 compinit
 # End of lines added by compinstall
 
-# initialize or load ssh-agent
 
+### powerline
+powerline-daemon -q
+. /usr/share/powerline/bindings/zsh/powerline.zsh
+
+# initialize or load ssh-agent
 if ! pgrep -u "$USER" ssh-agent > /dev/null; then
     ssh-agent -t 1h > "$XDG_RUNTIME_DIR/ssh-agent.env"
 fi
@@ -144,12 +160,14 @@ if [[ ! "$SSH_AUTH_SOCK" ]]; then
     source "$XDG_RUNTIME_DIR/ssh-agent.env" >/dev/null
 fi
 
+
 # initialize/load gnome-keyring
 if [ -n "$DESKTOP_SESSION" ];then
     eval $(gnome-keyring-daemon --start)
     export SSH_AUTH_SOCK
 fi
 
+# aliases
 alias l='/usr/bin/ls --color=auto --group-directories-first'
 alias ls=l
 alias ll='/usr/bin/ls -lh --color=auto --group-directories-first'
@@ -157,7 +175,6 @@ alias vim=nvim
 alias vimdiff='nvim -d'
 alias pylint='pylint -f colorized'
 
-# or use -i ?
 alias mv='mv -vi'
 alias cp='cp -vi'
 alias rm='rm -vI'
@@ -166,8 +183,8 @@ alias ln='ln -vi'
 # make sudo use aliases as well
 alias sudo='sudo '
 
-alias movie='mplayer -vf expand=::0:0::16/9 -af scaletempo'
-alias plocate='plocate -d /home/h/.local/share/plocate/home.db'
+# alias movie='mplayer -vf expand=::0:0::16/9 -af scaletempo'
+# alias plocate='plocate -d /home/h/.local/share/plocate/home.db'
 
 #TODO: automatically update plocate database, and write alias to use the one in
 #home
