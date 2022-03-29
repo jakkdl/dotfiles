@@ -38,6 +38,10 @@ output * bg #000000 solid_color
 #
 # You can get the names of your outputs by running: swaymsg -t get_outputs
 
+font pango:monospace 0
+titlebar_border_thickness 0
+titlebar_padding 0
+
 ### Idle configuration
 #
 # Example configuration:
@@ -97,7 +101,7 @@ input type:keyboard {
     #bindsym $mod+Ctrl+Shift+q exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
     bindsym $mod+Ctrl+Shift+q exit
 
-    #bindsym $mod+r rename to 
+    bindsym $mod+r rename workspace to $(wofi -d -b -L 1)
 #
 # Moving around:
 #
@@ -209,25 +213,26 @@ mode "resize" {
     bindsym Return mode "default"
     bindsym Escape mode "default"
 }
-bindsym $mod+r mode "resize"
+bindsym $mod+Ctrl+r mode "resize"
 
 #
 # Status Bar:
 #
 # Read `man 5 sway-bar` for more information about this section.
-bar {
-    position top
-
-    # When the status_command prints a new line to stdout, swaybar updates.
-    # The default just shows the current date and time.
-    status_command while date +'%Y-%m-%d %I:%M:%S %p'; do sleep 1; done
-    status_command while /home/h/.config/herbstluftwm/bat.py; do sleep 1; done
-
-    colors {
-        statusline #ffffff
-        background #323232
-        inactive_workspace #32323200 #32323200 #5c5c5c
-    }
-}
+bar swaybar_command waybar
+# bar {
+#     position top
+# 
+#     # When the status_command prints a new line to stdout, swaybar updates.
+#     # The default just shows the current date and time.
+#     status_command while date +'%Y-%m-%d %I:%M:%S %p'; do sleep 1; done
+#     status_command while /home/h/.config/herbstluftwm/bat.py; do sleep 1; done
+# 
+#     colors {
+#         statusline #ffffff
+#         background #323232
+#         inactive_workspace #32323200 #32323200 #5c5c5c
+#     }
+# }
 
 include /etc/sway/config.d/*
