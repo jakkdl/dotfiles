@@ -67,7 +67,7 @@ exec swayidle -w \
 #   }
 input type:keyboard {
     xkb_layout "us"
-    xkb_variant "dvorak"
+#    xkb_variant "dvorak"
     xkb_options "caps:escape"
 }
 #
@@ -94,6 +94,7 @@ input type:keyboard {
     # mouse button for dragging.
     floating_modifier $mod normal
 
+# Custom:
     # Reload the configuration file
     bindsym $mod+Shift+r reload
 
@@ -102,6 +103,21 @@ input type:keyboard {
     bindsym $mod+Ctrl+Shift+q exit
 
     bindsym $mod+r rename workspace to $(wofi -d -b -L 1)
+
+    # volume
+    bindsym --whole-window $mod+button4 exec "pactl set-sink-volume @DEFAULT_SINK@ +3%"
+    bindsym --whole-window $mod+button5 exec "pactl set-sink-volume @DEFAULT_SINK@ -3%"
+
+    # mpc volume
+    bindsym --whole-window $mod+Shift+button4 exec "mpc vol +1 >/dev/null"
+    bindsym --whole-window $mod+Shift+button5 exec "mpc vol -1 >/dev/null"
+
+    # toggle between speakers and headphone
+    bindsym $mod+m exec ~/bin/toggle_default_sink
+
+    bindsym $mod+p exec "mpc toggle"
+
+
 #
 # Moving around:
 #
@@ -130,6 +146,17 @@ input type:keyboard {
 # Workspaces:
 #
     # Switch to workspace
+    # bindsym $mod+1 workspace number 1, move workspace to output current
+    # bindsym $mod+2 workspace number 2, move workspace to output current
+    # bindsym $mod+3 workspace number 3, move workspace to output current
+    # bindsym $mod+4 workspace number 4, move workspace to output current
+    # bindsym $mod+5 workspace number 5, move workspace to output current
+    # bindsym $mod+6 workspace number 6, move workspace to output current
+    # bindsym $mod+7 workspace number 7, move workspace to output current
+    # bindsym $mod+8 workspace number 8, move workspace to output current
+    # bindsym $mod+9 workspace number 9, move workspace to output current
+    # bindsym $mod+0 workspace number 0, move workspace to output current
+
     bindsym $mod+1 workspace number 1
     bindsym $mod+2 workspace number 2
     bindsym $mod+3 workspace number 3
