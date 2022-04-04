@@ -16,7 +16,7 @@ set $up k
 set $right l
 
 # Your preferred terminal emulator
-set $term foot
+set $term footclient
 
 # Your preferred application launcher
 # Note: pass the final command to swaymsg so that the resulting window can be opened
@@ -266,5 +266,8 @@ bar swaybar_command waybar
 #         inactive_workspace #32323200 #32323200 #5c5c5c
 #     }
 # }
+
+# start foot server
+exec "foot --server"
 
 include /etc/sway/config.d/*

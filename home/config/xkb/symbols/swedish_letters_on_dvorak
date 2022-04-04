@@ -1,12 +1,12 @@
 xkb_symbols "sweletters" {
-    //å on alt+o (qwerty s)
-    key <AC02> { [	    o,	O, aring,       Aring		        ]	};
+    //å on alt+u (qwerty f)
+    key <AC04> { [	    u,	U, aring,       Aring		        ]	};
 
     //ä on alt+e (qwerty d)
     key <AC03> { [	    e,	E, adiaeresis,  Adiaeresis		]	};
 
-    //å on alt+u (qwerty f)
-    key <AC04> { [	    u,	U, odiaeresis,  Odiaeresis		]	};
+    //ö on alt+o (qwerty s)
+    key <AC02> { [	    o,	O, odiaeresis,  Odiaeresis		]	};
 
     // make right alt altGr
     include "level3(ralt_switch)"
