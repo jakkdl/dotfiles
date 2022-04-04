@@ -1,0 +1,3 @@
+! option = symbols
+  swedish_letters_on_dvorak:sweletters    = +swedish_letters_on_dvorak(sweletters)
+! include %S/evdev
