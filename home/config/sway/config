@@ -41,6 +41,7 @@ output * bg #000000 solid_color
 font pango:monospace 0
 titlebar_border_thickness 0
 titlebar_padding 0
+focus_follows_mouse no
 
 ### Idle configuration
 #
