@@ -1,0 +1,4 @@
+#!/bin/sh
+# pacmd set-default-sink $(pacmd list-sinks | grep "  index" | awk '{print $2}')
+# pactl set-default-sink $(pactl list sinks | grep IDLE --before-context=1 | awk -F '#' '/Sink /{print $NF}')
+pactl set-default-sink $(pactl list short sinks | grep -v $(pactl get-default-sink) | cut -f 1)
