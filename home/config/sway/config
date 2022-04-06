@@ -42,6 +42,7 @@ font pango:monospace 0
 titlebar_border_thickness 0
 titlebar_padding 0
 focus_follows_mouse no
+#focus_wrapping yes
 
 ### Idle configuration
 #
@@ -77,6 +78,11 @@ input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
     xkb_layout "us"
     # xkb_variant "dvorak"
     # xkb_options "caps:escape,swedish_letters_on_dvorak:sweletters"
+}
+
+input 4617:8961:Keyboardio_Model_01 {
+    xkb_layout "us"
+    xkb_options "swedish_letters_on_dvorak:sweletters"
 }
 #
 # You can get the names of your inputs by running: swaymsg -t get_inputs
@@ -121,7 +127,7 @@ input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
     bindsym --whole-window $mod+Shift+button5 exec "mpc vol -1 >/dev/null"
 
     # toggle between speakers and headphone
-    bindsym $mod+m exec ~/bin/toggle_default_sink
+    bindsym $mod+m exec ~/.local/bin/toggle_default_sink
 
     bindsym $mod+p exec "mpc toggle"
 
@@ -204,7 +210,7 @@ input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
     # Switch the current container between different layout styles
     bindsym $mod+s layout stacking
     bindsym $mod+w layout tabbed
-    bindsym $mod+e layout toggle split
+    # bindsym $mod+e layout toggle split
 
     # Make the current focus fullscreen
     bindsym $mod+f fullscreen

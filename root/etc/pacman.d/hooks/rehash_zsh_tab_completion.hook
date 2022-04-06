@@ -1,11 +1,15 @@
+# From https://wiki.archlinux.org/title/Zsh#Alternative_on-demand_rehash_using_SIGUSR1
+
 [Trigger]
-Type = Package
 Operation = Install
-Operation = Remove
 Operation = Upgrade
-Target = *
+Operation = Remove
+Type = Path
+Target = usr/bin/*
 
 [Action]
-Description = updating zsh tab completion cache
+Depends = zsh
+Depends = procps-ng
 When = PostTransaction
-Exec = /usr/bin/zsh -c "rehash"
+Description = updating zsh tab completion cache
+Exec = /usr/bin/pkill zsh --signal=USR1
