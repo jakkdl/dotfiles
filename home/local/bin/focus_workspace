@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+"""Makes i3/sway focus workspace work like in herbstluftwm"""
+
+import asyncio
+import argparse
+from i3ipc.aio import Connection
+
+async def main(num):
+    """always focuses workspace num on current output"""
+    ipc = await Connection().connect()
+
+    workspaces = await ipc.get_workspaces()
+    outputs = await ipc.get_outputs()
+    output = None
+    workspace = None
+
+    for output in outputs:
+        if output.focused:
+            break
+        #output = o
+
+    for workspace in workspaces:
+        if workspace.num == num:
+            break
+
+    # workspace doesn't exist or is already assigned to this output
+    if workspace is None or workspace.output == output.name:
+        await ipc.command(f'workspace number {num}')
+        return
+
+    # we can only move focused workspaces
+    # so first figure out what workspace is on num's output
+    other_output = [o for o in outputs if o.name == workspace.output][0]
+    old_ws = int(other_output.current_workspace[0])
+
+    # if it's the currently focused workspace, swap the workspaces
+    if old_ws == num:
+        await ipc.command(f'move workspace to output {other_output.name}')
+
+    # bring up the requested workspace
+    await ipc.command(f'workspace number {num}')
+
+    # move it to current output
+    await ipc.command(f'move workspace to output {output.name}')
+
+    # The workspace that was on the other monitor is now back, since it's on top of the stack
+
+parser = argparse.ArgumentParser(description='make i3 behave like herbstluftwm')
+parser.add_argument('target_workspace', type=int)
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    asyncio.run(main(args.target_workspace))

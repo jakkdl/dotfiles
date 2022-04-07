@@ -23,6 +23,7 @@ set $term footclient
 # on the original workspace that the command was run on.
 # set $menu dmenu_path | dmenu | xargs swaymsg exec --
 set $menu wofi --show=drun --lines=5 --prompt="" --gtk-dark
+set $emoji wofi --show=dmenu -i --cache-file=$XDG_CACHE_HOME/wofi-emojis -b --prompt="" < ~/.config/sway/emoji_list| cut -d ' ' -f 1 | tr -d '\n'
 
 # Configure screen capture for OBS
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
@@ -89,11 +90,11 @@ input 4617:8961:Keyboardio_Model_01 {
 # Read `man 5 sway-input` for more information about this section.
 
 ### Key bindings
-#
-# Basics:
-#
     # Start a terminal
     bindsym $mod+t exec $term
+
+    # Launch emoji picker
+    bindsym $mod+i exec $emoji
 
     # Kill focused window
     bindsym $mod+Ctrl+c kill
@@ -108,7 +109,6 @@ input 4617:8961:Keyboardio_Model_01 {
     # mouse button for dragging.
     floating_modifier $mod normal
 
-# Custom:
     # Reload the configuration file
     bindsym $mod+Shift+r reload
 
@@ -135,6 +135,11 @@ input 4617:8961:Keyboardio_Model_01 {
     # save location is set in ~/.config/user_dirs.dirs, requires xdg-user-dirs
     bindsym $mod+d exec "grimshot save area"
     bindsym $mod+Shift+d exec "grimshot save window"
+
+
+    # herbstluftwm cycle_monitor
+    #bindsym $mod+BackSpace exec "cycle_monitor"
+    bindsym $mod+BackSpace focus output right
 
 #
 # Moving around:
@@ -164,27 +169,17 @@ input 4617:8961:Keyboardio_Model_01 {
 # Workspaces:
 #
     # Switch to workspace
-    # bindsym $mod+1 workspace number 1, move workspace to output current
-    # bindsym $mod+2 workspace number 2, move workspace to output current
-    # bindsym $mod+3 workspace number 3, move workspace to output current
-    # bindsym $mod+4 workspace number 4, move workspace to output current
-    # bindsym $mod+5 workspace number 5, move workspace to output current
-    # bindsym $mod+6 workspace number 6, move workspace to output current
-    # bindsym $mod+7 workspace number 7, move workspace to output current
-    # bindsym $mod+8 workspace number 8, move workspace to output current
-    # bindsym $mod+9 workspace number 9, move workspace to output current
-    # bindsym $mod+0 workspace number 0, move workspace to output current
+    bindsym $mod+1 exec "focus_workspace 1"
+    bindsym $mod+2 exec "focus_workspace 2"
+    bindsym $mod+3 exec "focus_workspace 3"
+    bindsym $mod+4 exec "focus_workspace 4"
+    bindsym $mod+5 exec "focus_workspace 5"
+    bindsym $mod+6 exec "focus_workspace 6"
+    bindsym $mod+7 exec "focus_workspace 7"
+    bindsym $mod+8 exec "focus_workspace 8"
+    bindsym $mod+9 exec "focus_workspace 9"
+    bindsym $mod+0 exec "focus_workspace 0"
 
-    bindsym $mod+1 workspace number 1
-    bindsym $mod+2 workspace number 2
-    bindsym $mod+3 workspace number 3
-    bindsym $mod+4 workspace number 4
-    bindsym $mod+5 workspace number 5
-    bindsym $mod+6 workspace number 6
-    bindsym $mod+7 workspace number 7
-    bindsym $mod+8 workspace number 8
-    bindsym $mod+9 workspace number 9
-    bindsym $mod+0 workspace number 0
     # Move focused container to workspace
     bindsym $mod+Shift+1 move container to workspace number 1
     bindsym $mod+Shift+2 move container to workspace number 2
