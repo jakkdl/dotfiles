@@ -138,7 +138,6 @@ input 4617:8961:Keyboardio_Model_01 {
 
 
     # herbstluftwm cycle_monitor
-    #bindsym $mod+BackSpace exec "cycle_monitor"
     bindsym $mod+BackSpace focus output right
 
 #
