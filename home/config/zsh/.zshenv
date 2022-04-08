@@ -51,6 +51,9 @@ export VISUAL=$EDITOR
 # Compilation flags
 export ARCHFLAGS="-arch x86_64"
 
+# Requested by waybar
+export XDG_CURRENT_DESKTOP=unity
+
 # PATH modifications
 # requested by pip for mypy
 path+=('/home/h/.local/bin')

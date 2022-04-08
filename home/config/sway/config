@@ -18,6 +18,8 @@ set $right l
 # Your preferred terminal emulator
 set $term footclient
 
+set $output_count $(swaymsg -t get_outputs | grep -c name)
+
 # Your preferred application launcher
 # Note: pass the final command to swaymsg so that the resulting window can be opened
 # on the original workspace that the command was run on.
@@ -168,16 +170,16 @@ input 4617:8961:Keyboardio_Model_01 {
 # Workspaces:
 #
     # Switch to workspace
-    bindsym $mod+1 exec "focus_workspace 1"
-    bindsym $mod+2 exec "focus_workspace 2"
-    bindsym $mod+3 exec "focus_workspace 3"
-    bindsym $mod+4 exec "focus_workspace 4"
-    bindsym $mod+5 exec "focus_workspace 5"
-    bindsym $mod+6 exec "focus_workspace 6"
-    bindsym $mod+7 exec "focus_workspace 7"
-    bindsym $mod+8 exec "focus_workspace 8"
-    bindsym $mod+9 exec "focus_workspace 9"
-    bindsym $mod+0 exec "focus_workspace 0"
+    bindsym $mod+1 exec "focus_workspace 1 $output_count"
+    bindsym $mod+2 exec "focus_workspace 2 $output_count"
+    bindsym $mod+3 exec "focus_workspace 3 $output_count"
+    bindsym $mod+4 exec "focus_workspace 4 $output_count"
+    bindsym $mod+5 exec "focus_workspace 5 $output_count"
+    bindsym $mod+6 exec "focus_workspace 6 $output_count"
+    bindsym $mod+7 exec "focus_workspace 7 $output_count"
+    bindsym $mod+8 exec "focus_workspace 8 $output_count"
+    bindsym $mod+9 exec "focus_workspace 9 $output_count"
+    bindsym $mod+0 exec "focus_workspace 0 $output_count"
 
     # Move focused container to workspace
     bindsym $mod+Shift+1 move container to workspace number 1

@@ -5,9 +5,13 @@ import asyncio
 import argparse
 from i3ipc.aio import Connection
 
-async def main(num):
+async def main(num, output_count):
     """always focuses workspace num on current output"""
     ipc = await Connection().connect()
+
+    if output_count == 1:
+        await ipc.command(f'workspace number {num}')
+        return
 
     workspaces = await ipc.get_workspaces()
     outputs = await ipc.get_outputs()
@@ -47,7 +51,9 @@ async def main(num):
 
 parser = argparse.ArgumentParser(description='make i3 behave like herbstluftwm')
 parser.add_argument('target_workspace', type=int)
+parser.add_argument('output_count', type=int)
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    asyncio.run(main(args.target_workspace))
+    asyncio.run(main(args.target_workspace,
+        args.output_count))

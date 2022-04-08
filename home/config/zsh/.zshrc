@@ -180,6 +180,8 @@ alias cp='cp -vi'
 alias rm='rm -vI'
 alias ln='ln -vi'
 
+alias sway='sway &> /tmp/sway.log'
+
 # make sudo use aliases as well
 alias sudo='sudo '
 
