@@ -118,7 +118,7 @@ input 4617:8961:Keyboardio_Model_01 {
     #bindsym $mod+Ctrl+Shift+q exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
     bindsym $mod+Ctrl+Shift+q exit
 
-    bindsym $mod+r rename workspace to $(wofi -d -b -L 1)
+    #bindsym $mod+r rename workspace to $(wofi -d -b -L 1)
 
     # volume
     bindsym --whole-window $mod+button4 exec "pactl set-sink-volume @DEFAULT_SINK@ +3%"

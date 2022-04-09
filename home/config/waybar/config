@@ -38,7 +38,7 @@
     },
     "sway/workspaces": {
         "all-outputs": true
-    }
+    },
     "mpd": {
         // "format": "{stateIcon} {consumeIcon}{randomIcon}{repeatIcon}{singleIcon}{artist} - {album} - {title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) ⸨{songPosition}|{queueLength}⸩ {volume}% ",
         "format": "{stateIcon} {repeatIcon}{singleIcon}{title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) {volume}%",
