@@ -82,11 +82,13 @@ def diff_files(path, target, interactive):
 
     print(f'{path} content differs')
     print(''.join(diff))
-    if interactive:
-        res = input('overwrite? [Y/n] ')
-        if "n" in res.lower():
-            return True
-    return False
+    if not interactive:
+        return False
+
+    res = input('overwrite? [Y/n] ')
+    if "n" in res.lower():
+        return False
+    return True
 
 def symlink_files(folder, replace, interactive, prefix=''):
     """symlink user-writable files. If not interactive returns list of commands needed to rectify"""
