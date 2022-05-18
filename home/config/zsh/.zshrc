@@ -16,7 +16,7 @@ ZSH=/usr/share/oh-my-zsh/
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-# ZSH_THEME="robbyrussell"
+ZSH_THEME="amuse"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -25,7 +25,7 @@ ZSH=/usr/share/oh-my-zsh/
 # ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
 
 # Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
+CASE_SENSITIVE="true"
 
 # Uncomment the following line to use hyphen-insensitive completion.
 # Case-sensitive completion must be off. _ and - will be interchangeable.
@@ -71,7 +71,7 @@ zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 # HIST_STAMPS="mm/dd/yyyy"
 
 # Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
+ZSH_CUSTOM=$XDG_CONFIG_HOME/zsh/custom/
 
 # Which plugins would you like to load?
 # Standard plugins can be found in $ZSH/plugins/
@@ -82,6 +82,7 @@ plugins=(
     colored-man-pages
     gitfast
     git-escape-magic
+    poetry
     #git-prompt
     #github https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/github
 )
@@ -149,8 +150,8 @@ compinit
 
 
 ### powerline
-powerline-daemon -q
-. /usr/share/powerline/bindings/zsh/powerline.zsh
+#powerline-daemon -q
+#. /usr/share/powerline/bindings/zsh/powerline.zsh
 
 # initialize or load ssh-agent
 if ! pgrep -u "$USER" ssh-agent > /dev/null; then
@@ -181,6 +182,8 @@ alias rm='rm -vI'
 alias ln='ln -vi'
 
 alias sway='sway &> /tmp/sway.log'
+
+gitclone() { git clone git@github.com:jakkdl/"$1".git; }
 
 # make sudo use aliases as well
 alias sudo='sudo '
