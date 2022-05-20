@@ -3,34 +3,103 @@
 and prompts to create or warns about missing them"""
 import os
 import os.path
+import difflib
+
+FIXFILE="fix_links.sh"
 
 def main(interactive = True):
     """do all the stuffs"""
-    if any([
-            handle_folder('home', os.path.expanduser('~'), interactive, '.'),
-            handle_folder('root', os.path.expanduser('/'), interactive),
-            check_submodules()
-            ]):
+    commands = copy_folder_contents('root', '/', interactive)
+    commands += symlink_files('home', os.path.expanduser('~'), interactive, '.')
+    commands += check_submodules()
+
+    if not commands:
         print("all symlinks OK")
+        if os.path.isfile("fix_links.sh"):
+            os.remove("fix_links.sh")
+        return
+
+    with open("fix_links.sh", "w", encoding="utf-8") as file:
+        file.write('\n'.join(commands))
+    os.chmod(FIXFILE, 0o755)
+    print("run fix_links.sh")
 
 def check_submodules():
     """check for submodules"""
     if not os.path.isfile('vim-plug/plug.vim'):
-        print('run submodule init && submodule update')
-        return True
-    return False
+        return ["git submodule init && git submodule update\n"]
+    return []
 
-def handle_folder(folder, replace, interactive, prefix=''):
-    """returns the number of uncorrected errors"""
-    assert folder in ('home', 'root')
-    errors = 0
-    #homedir = os.path.expanduser('~')
-    #homedir = replace
+def copy_folder_contents(folder, replace, interactive):
+    """checks if file contents differ, returns list of commands needed to rectify"""
+    remove = False
+    commands = []
     for dirpath, _dirnames, filenames in os.walk(folder):
+        # root/ -> /
+        # root/dir/ -> /dir/
+        base = os.path.join(replace, dirpath[len(folder)+1:], '')
+        #basepath = base
+
+        for filename in filenames:
+            path = base+filename
+            abstarget = os.path.realpath(os.path.join(dirpath, filename))
+            target = os.path.join(dirpath, filename)
+
+            if not (os.path.isfile(path) or os.path.islink(path)):
+                print(f'{path} missing')
+
+            elif os.path.islink(path):
+                actual_target = os.readlink(path)
+                if actual_target == abstarget:
+                    print(f'{path} dangerous symlink')
+                    remove = True
+                else:
+                    print(f'{path} symlinked to {actual_target}')
+                    continue
+
+            else:
+                if not diff_files(path, target, interactive):
+                    continue
+                remove = True
+            if remove:
+                commands.append(f'sudo rm -iv {path}')
+            commands.append(f'sudo cp -iv {target} {path}')
+    return commands
+
+def diff_files(path, target, interactive):
+    """check file contents, if interactive prompt for overwrite.
+    returns True if it should be overwritten"""
+    # check if read rights
+    path_content = []
+    target_content = []
+    with open(path, encoding='utf-8') as file:
+        path_content = file.readlines()
+    with open(target, encoding='utf-8') as file:
+        target_content = file.readlines()
+    diff = list(difflib.context_diff(path_content, target_content))
+    if not diff:
+        return False
+
+    print(f'{path} content differs')
+    print(''.join(diff))
+    if not interactive:
+        return False
+
+    res = input('overwrite? [Y/n] ')
+    if "n" in res.lower():
+        return False
+    return True
+
+def symlink_files(folder, replace, interactive, prefix=''):
+    """symlink user-writable files. If not interactive returns list of commands needed to rectify"""
+    commands = []
+    for dirpath, _, filenames in os.walk(folder):
         if dirpath == folder:
+            # home/ -> ~/.
             base = os.path.join(replace, prefix)
             basepath = replace
         else:
+            # home/dir/ -> ~/.dir/
             base = os.path.join(replace, prefix + dirpath[len(folder)+1:], '')
             basepath = base
 
@@ -39,35 +108,35 @@ def handle_folder(folder, replace, interactive, prefix=''):
             path = base+filename
             real_target_path = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.relpath(real_target_path, basepath)
-            pref_target = real_target_path if folder == 'root' else target
 
-            if folder == 'root' and os.access(real_target_path, os.W_OK):
-                print(f"WARNING: dangerous write access, execute:\n"
-                        f"sudo chown root:root {real_target_path}")
             if not (os.path.isfile(path) or os.path.islink(path)):
-                print(f'{path} not a file')
-                errors += fix(path, pref_target, interactive)
+                print(f'{path} missing')
+                commands.append(fix(path, target, interactive))
                 continue
-            elif not os.path.islink(path):
-                print(f'{path} not a symlink')
-                errors += 1
-                continue
+
+            if not os.path.islink(path):
+                if not diff_files(path, target, interactive):
+                    continue
+                os.remove(path)
+                os.symlink(target, path)
 
             actual_target = os.readlink(path)
             if actual_target not in (target, real_target_path):
                 print(f'{path} incorrect target\n\t{actual_target} '
-                        f'should be\n\t{pref_target}')
-                errors += fix(path, pref_target, interactive)
-    return errors
+                        f'should be\n\t{target}')
+                commands.append(fix(path, target, interactive))
+    return commands
 
 def fix(path, target, interactive):
     """fix, or suggest how to fix, an incorrect symlink"""
-    if 'home' not in path:
-        print(target)
-        print(f'run: sudo ln -s {os.path.realpath(target)} {path}')
-        return 1
+
     if not interactive:
-        return 1
+        if not os.path.isdir(os.path.dirname(path)):
+            res = f"mkdir {os.path.dirname(path)}\n"
+        else:
+            res = ""
+        return res + f"ln -s {target} {path}"
+
     if "n" not in input("\tresolve? [Y/n]: "):
         if os.path.islink(path):
             os.remove(path)
@@ -75,9 +144,8 @@ def fix(path, target, interactive):
             print(f'creating directory {os.path.dirname(path)}')
             os.makedirs(os.path.dirname(path))
         os.symlink(target, path)
-        return 0
-    return 1
+    return ""
 
 if __name__ == '__main__':
-    print(__file__)
+    #print(__file__)
     main()
