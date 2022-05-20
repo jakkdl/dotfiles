@@ -277,7 +277,7 @@ bar swaybar_command waybar
 # }
 
 # start foot server
-exec "foot --server"
+#exec "foot --server"
 exec "systemctl start foot-server@$WAYLAND_DISPLAY"
 
 include /etc/sway/config.d/*
