@@ -25,7 +25,7 @@ set $output_count $(swaymsg -t get_outputs | grep -c name)
 # on the original workspace that the command was run on.
 # set $menu dmenu_path | dmenu | xargs swaymsg exec --
 set $menu wofi --show=drun --lines=5 --prompt="" --gtk-dark
-set $emoji wofi --show=dmenu -i --cache-file=$XDG_CACHE_HOME/wofi-emojis -b --prompt="" < ~/.config/sway/emoji_list| cut -d ' ' -f 1 | tr -d '\n'
+set $emoji wofi --show=dmenu -i --cache-file=$XDG_CACHE_HOME/wofi-emojis -b --prompt="" < ~/.config/sway/emoji_list| cut -d ' ' -f 1 | tr -d '\n' | wl-copy
 
 # Configure screen capture for OBS
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
