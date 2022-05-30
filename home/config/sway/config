@@ -40,6 +40,10 @@ output * bg #000000 solid_color
 #   output HDMI-A-1 resolution 1920x1080 position 1920,0
 #
 # You can get the names of your outputs by running: swaymsg -t get_outputs
+output HDMI-A-1 mode 1920x1200 pos 0 0 scale 1
+#0.98
+output eDP-1 pos 0 1200 scale 1
+#1.64
 
 font pango:monospace 0
 titlebar_border_thickness 0
@@ -278,6 +282,6 @@ bar swaybar_command waybar
 
 # start foot server
 #exec "foot --server"
-exec "systemctl start foot-server@$WAYLAND_DISPLAY"
+exec "systemctl --user start foot-server@$WAYLAND_DISPLAY.socket"
 
 include /etc/sway/config.d/*
