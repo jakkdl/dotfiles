@@ -20,7 +20,7 @@ def main(interactive = True):
         return
 
     with open("fix_links.sh", "w", encoding="utf-8") as file:
-        file.write('\n'.join(commands))
+        file.write(' &&\n'.join(commands))
     os.chmod(FIXFILE, 0o755)
     print("run fix_links.sh")
 
@@ -115,7 +115,7 @@ def symlink_files(folder, replace, interactive, prefix=''):
                 continue
 
             if not os.path.islink(path):
-                if not diff_files(path, target, interactive):
+                if not diff_files(path, real_target_path, interactive):
                     continue
                 os.remove(path)
                 os.symlink(target, path)
