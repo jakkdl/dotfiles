@@ -136,6 +136,7 @@ input 4617:8961:Keyboardio_Model_01 {
     bindsym $mod+m exec ~/.local/bin/toggle_default_sink
 
     bindsym $mod+p exec "mpc toggle"
+    bindsym $mod+Shift+y exec "sus"
 
     # Screenshot, requires grimshot from AUR
     # save location is set in ~/.config/user_dirs.dirs, requires xdg-user-dirs
