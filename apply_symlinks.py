@@ -111,7 +111,7 @@ def symlink_files(folder, replace, interactive, prefix=''):
 
             if not (os.path.isfile(path) or os.path.islink(path)):
                 print(f'{path} missing')
-                commands.append(fix(path, target, interactive))
+                commands += fix(path, target, interactive)
                 continue
 
             if not os.path.islink(path):
@@ -127,15 +127,15 @@ def symlink_files(folder, replace, interactive, prefix=''):
                 commands.append(fix(path, target, interactive))
     return commands
 
-def fix(path, target, interactive):
+def fix(path, target, interactive) -> list[str]:
     """fix, or suggest how to fix, an incorrect symlink"""
 
     if not interactive:
         if not os.path.isdir(os.path.dirname(path)):
-            res = f"mkdir {os.path.dirname(path)}\n"
+            res = [f"mkdir {os.path.dirname(path)}"]
         else:
-            res = ""
-        return res + f"ln -s {target} {path}"
+            res = []
+        return res + [f"ln -s {target} {path}"]
 
     if "n" not in input("\tresolve? [Y/n]: "):
         if os.path.islink(path):
@@ -144,7 +144,7 @@ def fix(path, target, interactive):
             print(f'creating directory {os.path.dirname(path)}')
             os.makedirs(os.path.dirname(path))
         os.symlink(target, path)
-    return ""
+    return []
 
 if __name__ == '__main__':
     #print(__file__)

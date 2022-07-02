@@ -197,3 +197,6 @@ alias sudo='sudo '
 # Trap SIGUSR1 signal, sent by pacman hook, to rehash the tab completion cache
 TRAPUSR1() { rehash }
 bindkey -v
+
+# debug in ipdb
+export PYTHONBREAKPOINT=ipdb.set_trace
