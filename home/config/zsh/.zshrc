@@ -10,7 +10,7 @@ zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 
 #### oh-my-zsh ####
 # Path to your oh-my-zsh installation.
-ZSH=/usr/share/oh-my-zsh/
+ZSH="${XDG_DATA_DIRS%%:*}/oh-my-zsh/"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -117,7 +117,7 @@ source $ZSH/oh-my-zsh.sh
 export ZPLUG_HOME=$XDG_DATA_HOME/zplug
 export ZPLUG_CACHE_DIR=$XDG_CACHE_HOME/zplug
 
-source /usr/share/zsh/scripts/zplug/init.zsh
+source "$ZPLUG_HOME/init.zsh"
 zplug 'MichaelAquilina/zsh-autoswitch-virtualenv'
 
 # source plugins and add commands to $PATH
@@ -172,7 +172,7 @@ fi
 alias l='/usr/bin/ls --color=auto --group-directories-first'
 alias ls=l
 alias ll='/usr/bin/ls -lh --color=auto --group-directories-first'
-alias vim=nvim
+alias vim="nvim -p"
 alias vimdiff='nvim -d'
 alias pylint='pylint -f colorized'
 
@@ -183,7 +183,7 @@ alias ln='ln -vi'
 
 alias sway='sway &> /tmp/sway.log'
 
-gitclone() { git clone git@github.com:jakkdl/"$1".git; }
+gitclone() { git clone git@github.com:"$1".git; }
 
 # make sudo use aliases as well
 alias sudo='sudo '

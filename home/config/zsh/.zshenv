@@ -10,7 +10,16 @@ export XDG_DATA_HOME=$HOME/.local/share
 ## Where user-specific state files should be written (analogous to /var/lib).
 export XDG_STATE_HOME=$HOME/.local/state
 
-#XDG_RUNTIME_DIR
+# ugly hack for termux non-standard root
+if [[ -n "$TERMUX_VERSION" ]]; then
+    export SYS_ROOT="/data/data/com.termux/files"
+else
+    export SYS_ROOT=""
+fi
+if [[ -z "$USER" ]]; then
+    export USER="u0_a220"
+fi
+export XDG_RUNTIME_DIR="$SYS_ROOT/run/user/$UID"
 #Used for non-essential, user-specific data files such as sockets, named pipes,
 #etc. Not required to have a default value; warnings should be issued if not
 #set or equivalents provided.
@@ -24,8 +33,8 @@ export XDG_STATE_HOME=$HOME/.local/state
 #pam_systemd sets this to /run/user/$UID.
 
 ## System directories
-export XDG_DATA_DIRS=/usr/local/share:/usr/share
-export XDG_CONFIG_DIRS=/etc/xdg
+export XDG_DATA_DIRS=$SYS_ROOT/usr/local/share:$SYS_ROOT/usr/share
+export XDG_CONFIG_DIRS=$SYS_ROOT/etc/xdg
 
 # Make zsh use XDG directories
 export HISTFILE="$XDG_STATE_HOME"/zsh/history
@@ -56,7 +65,7 @@ export XDG_CURRENT_DESKTOP=unity
 
 # PATH modifications
 # requested by pip for mypy
-path+=('/home/h/.local/bin')
-path+=('/home/h/Bin')
+path+=("$HOME/.local/bin")
+path+=("$HOME/Bin")
 # export to sub-processes (make it inherited by child processes)
 export PATH
