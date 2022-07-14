@@ -19,11 +19,15 @@ Plug 'vim-airline/vim-airline'
 " Plug 'morhetz/gruvbox' " Another theme
 " Plug 'mxw/vim-prolog'
 Plug 'neomake/neomake'
-if filereadable("/usr/bin/node")
-    Plug 'neoclide/coc.nvim', {'branch': 'release'}
-endif
 Plug 'plasticboy/vim-markdown'
 Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
+
+"  :checkhealth gives warnings
+" if filereadable("/usr/bin/node")
+"     Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" endif
+let g:python3_host_prog = $HOME . '/.local/share/nvim/venv/bin/python'
+Plug 'averms/black-nvim', {'do': ':UpdateRemotePlugins'}
 
 " Initialize plugin system
 call plug#end()
@@ -90,6 +94,7 @@ let g:neomake_python_enabled_makers = ['pylint', 'mypy', 'vulture']
 " set background=dark    " Setting dark mode
 " let g:gruvbox_contrast_dark = 'hard'
 
+" #### black-nvim
 " #######################
 " General configuration
 syntax on
