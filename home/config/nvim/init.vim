@@ -11,6 +11,7 @@ call plug#begin('~/.local/share/nvim/plugged')
 " Plug 'LucHermitte/lh-vim-lib'
 " Plug 'LucHermitte/local_vimrc'
 " Plug 'mfulz/cscope.nvim'
+Plug 'jasonccox/vim-wayland-clipboard'
 Plug 'ntpeters/vim-better-whitespace' " :help better-whitespace
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-eunuch'
