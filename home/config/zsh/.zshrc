@@ -138,6 +138,9 @@ HISTSIZE=100000
 SAVEHIST=50000
 setopt appendhistory
 setopt hist_ignore_dups
+
+setopt nosharehistory
+setopt nohistverify
 bindkey -v
 # End of lines configured by zsh-newuser-install
 
