@@ -56,7 +56,8 @@ let g:vim_markdown_json_frontmatter = 1  " for JSON format
 call neomake#configure#automake('rw')
 
 " which linter to enable for Python source file linting
-let g:neomake_python_enabled_makers = ['pylint', 'mypy', 'vulture']
+" let g:neomake_python_enabled_makers = ['pylint', 'mypy', 'vulture']
+let g:neomake_python_enabled_makers = ['mypy']
 " let g:neomake_javascript_enablem_makers = ['eslint_d']
 
 " ######################
@@ -146,7 +147,7 @@ autocmd FileType * exe "normal zR"
 
 " enable line numbers
 set number
-set relativenumber
+"set norelativenumber
 
 " load same-folder init.vim
 " if filereadable("init.vim")
