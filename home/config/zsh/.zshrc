@@ -182,12 +182,15 @@ alias pylint='pylint -f colorized'
 
 alias mv='mv -vi'
 alias cp='cp -vi'
-alias rm='rm -vI'
+alias rm='rm -I'
 alias ln='ln -vi'
+alias pacmanremoveorphans='pacman -Qtd | pacman -Rns -'
 
 alias sway='sway &> /tmp/sway.log'
 
 gitclone() { git clone git@github.com:"$1".git; }
+ast() { astpretty --no "$1" | less -FX}
+astlines() { astpretty "$1" | less -FX}
 
 # make sudo use aliases as well
 alias sudo='sudo '

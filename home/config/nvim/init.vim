@@ -97,6 +97,21 @@ let g:neomake_python_enabled_makers = ['mypy']
 " let g:gruvbox_contrast_dark = 'hard'
 
 " #### black-nvim
+"
+"
+"
+" ### airline
+let g:airline#extensions#branch#displayed_head_limit = 10
+let g:airline#parts#ffenc#skip_expected_string='utf-8[unix]'
+let g:airline_powerline_fonts = 1
+" let g:airline#extensions#default#section_truncate_width = {
+"   \ 'b': 79,
+"   \ 'x': 60,
+"   \ 'y': 88,
+"   \ 'z': 45,
+"   \ 'warning': 80,
+"   \ 'error': 80,
+"   \ }
 " #######################
 " General configuration
 syntax on

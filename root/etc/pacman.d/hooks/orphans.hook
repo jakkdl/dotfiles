@@ -8,4 +8,4 @@ Target = *
 [Action]
 Description = Notifying of orphaned packages
 When = PostTransaction
-Exec = /usr/bin/bash -c "/usr/bin/pacman -Qtd || /usr/bin/echo '=> None found.'"
+Exec = /usr/bin/bash -c "/usr/bin/pacman -Qtd && echo "Remove with pacmanremoveorphans or mark explicit with `-D --asexplicit`" || /usr/bin/echo '=> None found.'"

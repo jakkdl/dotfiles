@@ -8,4 +8,4 @@ Target = *
 [Action]
 Description = Remove uninstalled package cache files not accessed in 1 month.
 When = PostTransaction
-Exec = /usr/bin/paccache -rvu --keep 0 --min-atime "-1 month"
+Exec = /usr/bin/paccache -rvu --keep 0 --min-atime "-1 month" --quiet
