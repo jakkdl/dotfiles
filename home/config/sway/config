@@ -261,6 +261,10 @@ mode "resize" {
 }
 bindsym $mod+Ctrl+r mode "resize"
 
+
+for_window [title="^$" app_id="firefox.*"] floating enable
+no_focus [title="^$" app_id="firefox.*"]
+
 #
 # Status Bar:
 #

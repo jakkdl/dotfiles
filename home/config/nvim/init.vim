@@ -21,6 +21,7 @@ Plug 'vim-airline/vim-airline'
 " Plug 'mxw/vim-prolog'
 Plug 'neomake/neomake'
 Plug 'plasticboy/vim-markdown'
+Plug 'cespare/vim-toml'
 Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
 
 "  :checkhealth gives warnings
