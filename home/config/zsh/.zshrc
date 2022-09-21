@@ -184,7 +184,7 @@ alias mv='mv -vi'
 alias cp='cp -vi'
 alias rm='rm -I'
 alias ln='ln -vi'
-alias pacmanremoveorphans='pacman -Qtd | pacman -Rns -'
+alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
 alias sway='sway &> /tmp/sway.log'
 
