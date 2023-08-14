@@ -83,7 +83,8 @@ plugins=(
     gitfast
     git-escape-magic
     poetry
-    #git-prompt
+    virtualenv
+    git-prompt
     #github https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/github
 )
 
@@ -141,8 +142,8 @@ setopt hist_ignore_dups
 
 setopt nosharehistory
 setopt nohistverify
-bindkey -v
-# End of lines configured by zsh-newuser-install
+
+
 
 
 # The following lines were added by compinstall
@@ -165,6 +166,42 @@ if [[ ! -f "$SSH_AUTH_SOCK" ]]; then
     source "$XDG_RUNTIME_DIR/ssh-agent.env" >/dev/null
 fi
 
+#setopt prompt_subst
+#export VIRTUAL_ENV_DISABLE_PROMPT=0
+#autoload -Uz add-zsh-hook
+# Configure Prompt
+#function virtualenv_info(){
+#    # Get Virtual Env
+#    if [[ -n "$VIRTUAL_ENV" ]]; then
+#        # Strip out the path and just leave the env name
+#        venv="${VIRTUAL_ENV##*/}"
+#    else
+#        # In case you don't have one activated
+#        venv=''
+#    fi
+#    [[ -n "$venv" ]] && echo "(venv:$venv) "
+#}
+#function virtualenv_info { 
+    #[ $VIRTUAL_ENV ] && echo '('`basename $VIRTUAL_ENV`') '
+#}
+#virtualenv_prompt_info=""
+#function update_virtualenv_prompt_info() {
+#    if [ -n "${VIRTUAL_ENV+1}" ]; then
+#        virtualenv_prompt_info=$(basename $VIRTUAL_ENV)
+#    else
+#        virtualenv_prompt_info=""
+#    fi
+#    echo poop
+#    PROMPT='
+#%{%(?.$fg_bold[green].$fg_bold[red])%}%~%{$reset_color%}$(git_prompt_info)$(virtualenv_prompt_info) ⌚ %{$fg_bold[red]%}%*%{$reset_color%}
+#$ '
+#}
+#add-zsh-hook chpwd update_virtualenv_prompt_info
+#VENV="\$(virtualenv_info)";
+#PROMPT='
+#%{%(?.$fg_bold[green].$fg_bold[red])%}%~%{$reset_color%}$(git_prompt_info)${VENV} ⌚ %{$fg_bold[red]%}%*%{$reset_color%}
+#$ '
+#PROMPT+='%{$fg[green]%}$(virtualenv_info)%{$reset_color%}%'
 
 # initialize/load gnome-keyring
 if [ -n "$DESKTOP_SESSION" ];then
@@ -188,6 +225,8 @@ alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
 alias sway='sway &> /tmp/sway.log'
 
+alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install -q --upgrade pip'
+
 gitclone() { git clone git@github.com:"$1".git; }
 ast() { astpretty --no "$1" | less -FX}
 astlines() { astpretty "$1" | less -FX}
@@ -201,9 +240,41 @@ alias sudo='sudo '
 #TODO: automatically update plocate database, and write alias to use the one in
 #home
 
+function pip() { command pip $@ && /usr/bin/pkill zsh --signal=USR1 }
 # Trap SIGUSR1 signal, sent by pacman hook, to rehash the tab completion cache
 TRAPUSR1() { rehash }
+
+# enable vi mode
 bindkey -v
+
+# remove esc-/ keybind, since it collides with esc, /
+bindkey -r '^[/'
 
 # debug in ipdb
 export PYTHONBREAKPOINT=ipdb.set_trace
+# don't have irritating spinners in tox
+export TOX_PARALLEL_NO_SPINNER=1
+# always use --develop to save setup time
+alias tox='tox --develop'
+alias toxall='tox --develop -qp -- --no-cov'
+alias gitpruneremote="git fetch --all --prune && git checkout main && git merge && git branch -v|grep '\[gone\]'|awk '{print \$1}'|xargs -I{} git branch -D {}"
+cst() { cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch }
+export PYRIGHT_PYTHON_FORCE_VERSION=latest
+
+PATH="/home/h/perl5/bin:/usr/bin/core_perl${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="/home/h/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+PERL_LOCAL_LIB_ROOT="/home/h/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
+PERL_MB_OPT="--install_base \"/home/h/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=/home/h/perl5"; export PERL_MM_OPT;
+#compdef toggl
+_toggl() {
+  eval $(env COMMANDLINE="${words[1,$CURRENT]}" _TOGGL_COMPLETE=complete-zsh  toggl)
+}
+if [[ "$(basename -- ${(%):-%x})" != "_toggl" ]]; then
+  compdef _toggl toggl
+fi
+
+# open current line in external editor
+autoload edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line

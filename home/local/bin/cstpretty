@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+import libcst as cst
+import argparse
+
+parser = argparse.ArgumentParser(prog="cstpretty")
+parser.add_argument("filename")
+args = parser.parse_args()
+with open(args.filename) as f:
+    content = f.read()
+print(cst.parse_module(content))

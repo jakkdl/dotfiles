@@ -1,0 +1,7 @@
+
+[Unit]
+Description=Suspend system if low battery
+
+[Service]
+Type=oneshot
+ExecStart=sh -c /etc/systemd/system/suspend_low_bat.sh

@@ -1,0 +1,3 @@
+# SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="8c:16:45:c9:1b:cb", NAME="net0"
+# SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="34:e1:2d:7d:3b:a1", NAME="wet0"
+# SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="52:cb:9a:94:db:5d", NAME="usb0"

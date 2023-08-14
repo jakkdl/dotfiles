@@ -1,0 +1,8 @@
+[Unit]
+Description=Check battery every minute, suspending if below 15%
+
+[Timer]
+OnUnitActiveSec=60s
+
+[Install]
+WantedBy=timers.target

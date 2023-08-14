@@ -1,0 +1,8 @@
+# according to github wiki - does not seem to do anything
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="230[0-3]", TAG+="uaccess"
+# idProduct and idVendor as reported by udevadm info for model100 in prog mode
+#SUBSYSTEM=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0005", TAG+="uaccess"
+# outside prog mode
+#SUBSYSTEM=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0006", TAG+="uaccess"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0005", SYMLINK+="model100", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0006", SYMLINK+="model100", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"

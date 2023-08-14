@@ -5,7 +5,7 @@
     // "width": 1280, // Waybar width
     "spacing": 4, // Gaps between modules (4px)
     // Choose the order of the modules
-    "modules-left": ["sway/workspaces", "sway/mode", "custom/media"],
+    "modules-left": ["sway/workspaces", "sway/mode", "custom/toggl"],
     "modules-center": ["sway/window"],
     "modules-right": ["mpd", "idle_inhibitor", "pulseaudio", "network", "cpu", "memory", "temperature", "backlight", "battery", "tray"],
     // Modules configuration
@@ -156,6 +156,17 @@
         "escape": true,
         "exec": "$HOME/.config/waybar/mediaplayer.py 2> /dev/null" // Script in resources folder
         // "exec": "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" // Filter player based on name
+    },
+    "custom/toggl": {
+        "exec": "$HOME/.config/waybar/toggl_status.py",
+        "return-type": "json",
+        "format": "{icon}{}",
+        "interval": 60,
+        "format-icons": {
+            "stop": "",
+            "start": ""
+        }
     }
+
 }
 

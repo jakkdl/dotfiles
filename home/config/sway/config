@@ -16,7 +16,8 @@ set $up k
 set $right l
 
 # Your preferred terminal emulator
-set $term footclient
+#set $term footclient
+set $term foot
 
 set $output_count $(swaymsg -t get_outputs | grep -c name)
 
@@ -40,14 +41,17 @@ output * bg #000000 solid_color
 #   output HDMI-A-1 resolution 1920x1080 position 1920,0
 #
 # You can get the names of your outputs by running: swaymsg -t get_outputs
-output HDMI-A-1 mode 1920x1200 pos 0 0 scale 1
+output HDMI-A-1 mode 1920x1200 pos 1600 0 scale 1
 #0.98
-output eDP-1 pos 0 1200 scale 1
+#output eDP-1 pos 0 1200 scale 1.4
+output eDP-1 mode --custom 1600x900 pos 0 0 scale 1
 #1.64
 
-font pango:monospace 0
-titlebar_border_thickness 0
-titlebar_padding 0
+# hide window titles
+default_border pixel 5
+
+# hide borders to the edge
+#hide_edge_borders none
 focus_follows_mouse no
 #focus_wrapping yes
 
@@ -78,18 +82,23 @@ exec swayidle -w \
 input 1:1:AT_Translated_Set_2_keyboard {
     xkb_layout "us"
     xkb_variant "dvorak"
-    xkb_options "caps:escape,swedish_letters_on_dvorak:sweletters"
+    xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters"
 }
 
 input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
     xkb_layout "us"
     # xkb_variant "dvorak"
-    # xkb_options "caps:escape,swedish_letters_on_dvorak:sweletters"
+    # xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters"
 }
 
 input 4617:8961:Keyboardio_Model_01 {
     xkb_layout "us"
-    xkb_options "swedish_letters_on_dvorak:sweletters"
+    #xkb_options "nordic_letters_on_dvorak:nordicletters"
+}
+
+input 13462:6:Keyboardio_Model_100_Keyboard {
+    xkb_layout "us"
+    #xkb_options "nordic_letters_on_dvorak:nordicletters"
 }
 #
 # You can get the names of your inputs by running: swaymsg -t get_inputs
@@ -122,7 +131,7 @@ input 4617:8961:Keyboardio_Model_01 {
     #bindsym $mod+Ctrl+Shift+q exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
     bindsym $mod+Ctrl+Shift+q exit
 
-    #bindsym $mod+r rename workspace to $(wofi -d -b -L 1)
+    bindsym $mod+r exec "rename_workspace.py"
 
     # volume
     bindsym --whole-window $mod+button4 exec "pactl set-sink-volume @DEFAULT_SINK@ +3%"
@@ -231,11 +240,11 @@ input 4617:8961:Keyboardio_Model_01 {
     # You can send windows there and get them back later.
 
     # Move the currently focused window to the scratchpad
-    bindsym $mod+Shift+minus move scratchpad
+    #bindsym $mod+Shift+minus move scratchpad
 
     # Show the next scratchpad window or hide the focused scratchpad window.
     # If there are multiple scratchpad windows, this command cycles through them.
-    bindsym $mod+minus scratchpad show
+    #bindsym $mod+minus scratchpad show
 #
 # Resizing containers:
 #
@@ -262,8 +271,8 @@ mode "resize" {
 bindsym $mod+Ctrl+r mode "resize"
 
 
-for_window [title="^$" app_id="firefox.*"] floating enable
-no_focus [title="^$" app_id="firefox.*"]
+#for_window [title="^$" app_id="firefox.*"] floating enable
+#no_focus [title="^$" app_id="firefox.*"]
 
 #
 # Status Bar:
@@ -286,7 +295,8 @@ bar swaybar_command waybar
 # }
 
 # start foot server
-#exec "foot --server"
-exec "systemctl --user start foot-server@$WAYLAND_DISPLAY.socket"
+#exec "systemctl --user start foot-server@$WAYLAND_DISPLAY.socket"
+
+exec mako
 
 include /etc/sway/config.d/*
