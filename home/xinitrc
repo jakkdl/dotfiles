@@ -58,5 +58,5 @@ wmname LG3D
 
 urxvtd -q -f -o
 # Death to the mice!
-#:exec herbstluftwm --locked
+#exec herbstluftwm --locked
 exec openbox

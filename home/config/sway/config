@@ -299,7 +299,11 @@ bar swaybar_command waybar
 # }
 
 # start foot server
+# no longer using foot-client
 #exec "systemctl --user start foot-server@$WAYLAND_DISPLAY.socket"
+
+# I don't think this line works
+#exec "foot --server"
 
 exec mako
 
