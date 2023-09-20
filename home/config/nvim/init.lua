@@ -224,59 +224,51 @@ vim.api.nvim_create_user_command(
 -- map <leader>s :execute "noautocmd vimgrep /\\<" . expand("<cword>") . "\\>/gj **/*." .  expand("%:e") <Bar> cw<CR>
 -- map <leader>s :execute "noautocmd vimgrep /\\<" . expand("<cword>") . "\\>/gj **/*." . expand("%:e") <Bar> cfdo "cfdo %s/" . expand("<cword>") . "/"
 
+
+-- pip install pylsp-mypy python-lsp-ruff pylsp-rope python-lsp-black pyls-isort
+
 lspconfig = require("lspconfig")
 lspconfig.pylsp.setup {
-on_attach = custom_attach,
-settings = {
-    pylsp = {
-    plugins = {
-        -- formatter options
-        black = { enabled = true },
-        autopep8 = { enabled = false },
-        yapf = { enabled = false },
-        -- linter options
-        pylint = { enabled = false, executable = "pylint" },
-        pyflakes = { enabled = false },
-        mccabe = { enabled = false },
-        pycodestyle = { enabled = false },
-        -- type checker
-        pylsp_mypy = { enabled = true },
-        -- auto-completion options
-        jedi_completion = { fuzzy = true },
-        -- import sorting
-        pyls_isort = { enabled = true },
+    on_attach = custom_attach,
+    settings = {
+        pylsp = {
+            plugins = {
+                black = { enabled = true },
+                pylsp_mypy = { enabled = true },
+                -- auto-completion
+                jedi_completion = { fuzzy = true },
+                -- import sorting (disabled if ruff is available)
+                pyls_isort = { enabled = true },
+
+                ruff = {
+                    enabled = true,
+                    lineLength = 120,
+                },
+
+                -- disabled
+                -- formatters
+                autopep8 = { enabled = false },
+                yapf = { enabled = false },
+                -- linters
+                pylint = { enabled = false, executable = "pylint" },
+                pyflakes = { enabled = false },
+                mccabe = { enabled = false },
+                pycodestyle = { enabled = false },
+
+            },
+        },
     },
+    flags = {
+        debounce_text_changes = 200,
     },
-},
-flags = {
-    debounce_text_changes = 200,
-},
-capabilities = capabilities,
+    capabilities = capabilities,
 }
 
 -- Setup language servers.
---local lspconfig = require('lspconfig')
---lspconfig.pylsp.setup {}
-    --settings = {
-    --    pylsp = {
-    --        plugins = {
-    --            pyflakes = { enabled = false },
-    --            pycodestyle = { enabled = false },
-    --            jedi_completion = { fuzzy = true },
-    --            pyls_isort = { enabled = true },
-    --        }
-    --    }
-    --}
---}
+-- being a bit conservative and keeping these commented out lines for the moment, in case
+-- I want to play around more with pyright/pyre/etc
 --lspconfig.pyright.setup {}
 --lspconfig.pyre.setup {}
-lspconfig.ruff_lsp.setup {
-    init_options = {
-         settings = {
-            args = { '--line-length=120' },
-         }
-    }
-}
 -- lspconfig.pylsp_mypy.setup {}
 -- lspconfig.tsserver.setup {}
 -- lspconfig.rust_analyzer.setup {
