@@ -2,7 +2,9 @@
 # /etc/init.d/earlyoom or by systemd from earlyoom.service.
 
 # Options to pass to earlyoom
-EARLYOOM_ARGS="-r 3600 -n --avoid '(^|/)(init|systemd|Xorg|sshd)$'"
+EARLYOOM_ARGS="-r 3600 -n --avoid '(^|/)(init|systemd|sway|sshd|foot|footclient|nvim)$' -m 5"
+
+# -n enables dbus notifications ... though I haven't gotten that to work
 
 # Examples:
 
@@ -16,6 +18,6 @@ EARLYOOM_ARGS="-r 3600 -n --avoid '(^|/)(init|systemd|Xorg|sshd)$'"
 # EARLYOOM_ARGS="-m 15 -s 5"
 
 # Avoid killing processes whose name matches this regexp
-# EARLYOOM_ARGS="--avoid '(^|/)(init|X|sshd|firefox)$'"
+# EARLYOOM_ARGS="--avoid '(^|/)(init|systemd|Xorg|sshd)$'"
 
 # See more at `earlyoom -h'
