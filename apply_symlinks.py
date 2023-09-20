@@ -10,10 +10,10 @@ from typing import Literal
 FIXFILE = "fix_links.sh"
 
 
-def main(interactive=True):
+def main() -> None:
     """do all the stuffs"""
-    commands = copy_folder_contents("root", "/", interactive)
-    commands += symlink_files("home", os.path.expanduser("~"), interactive, ".")
+    symlink_files("home", os.path.expanduser("~"), ".")
+    commands = copy_folder_contents("root", "/")
     commands += check_submodules()
 
     if not commands:
@@ -28,14 +28,14 @@ def main(interactive=True):
     print("run fix_links.sh")
 
 
-def check_submodules():
+def check_submodules() -> list[str]:
     """check for submodules"""
     if not os.path.isfile("vim-plug/plug.vim"):
         return ["git submodule init && git submodule update\n"]
     return []
 
 
-def copy_folder_contents(folder, replace, interactive):
+def copy_folder_contents(folder: str, replace: str) -> list[str]:
     """checks if file contents differ, returns list of commands needed to rectify"""
     remove = False
     commands = []
@@ -63,7 +63,7 @@ def copy_folder_contents(folder, replace, interactive):
                     continue
 
             else:
-                match diff_files(path, target, interactive):
+                match diff_files(path, target):
                     case "n":
                         continue
                     case "y":
@@ -79,8 +79,8 @@ def copy_folder_contents(folder, replace, interactive):
     return commands
 
 
-def diff_files(path, target, interactive) -> Literal["y"] | Literal["n"] | Literal["r"]:
-    """check file contents, if interactive prompt for overwrite.
+def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal["r"]:
+    """check file contents, prompt whether to overwrite.
     returns 'y' if it should be overwritten"""
     # check if read rights
     path_content = []
@@ -94,11 +94,10 @@ def diff_files(path, target, interactive) -> Literal["y"] | Literal["n"] | Liter
         return "n"
 
     print(
-        f"{path} content differs. The former is on system, the latter in Git. `-` means it's on system and not in git."
+        f"{path} content differs. The former is on system, the latter in Git.\n"
+        "`-` means it's on system and not in git."
     )
     print("".join(diff))
-    if not interactive:
-        return "n"
 
     match input("overwrite? [Y/n/r[everse]] ").lower():
         case ""|"y":
@@ -112,9 +111,8 @@ def diff_files(path, target, interactive) -> Literal["y"] | Literal["n"] | Liter
     raise ValueError("must be y, n or r")
 
 
-def symlink_files(folder, replace, interactive, prefix=""):
-    """symlink user-writable files. If not interactive returns list of commands needed to rectify"""
-    commands = []
+def symlink_files(folder: str, replace: str, prefix: str="") -> None:
+    """symlink user-writable files."""
     for dirpath, _, filenames in os.walk(folder):
         if dirpath == folder:
             # home/ -> ~/.
@@ -143,7 +141,7 @@ def symlink_files(folder, replace, interactive, prefix=""):
                         raise ValueError("must be y, n or r")
 
             elif not os.path.islink(path):
-                match diff_files(path, real_target_path, interactive):
+                match diff_files(path, real_target_path):
                     case "n":
                         continue
                     case "r":
@@ -159,19 +157,10 @@ def symlink_files(folder, replace, interactive, prefix=""):
                     f"{path} incorrect target\n\t{actual_target} "
                     f"should be\n\t{target}"
                 )
-                commands.append(fix(path, target, interactive))
-    return commands
 
 
-def fix(path, target, interactive) -> list[str]:
+def fix(path: str, target: str) -> None:
     """fix, or suggest how to fix, an incorrect symlink"""
-
-    if not interactive:
-        if not os.path.isdir(os.path.dirname(path)):
-            res = [f"mkdir {os.path.dirname(path)}"]
-        else:
-            res = []
-        return res + [f"ln -s {target} {path}"]
 
     response = input("\tresolve? [Y/n/r[everse]]: ")
 
@@ -186,7 +175,6 @@ def fix(path, target, interactive) -> list[str]:
             print(f"creating directory {os.path.dirname(path)}")
             os.makedirs(os.path.dirname(path))
         os.symlink(target, path)
-    return []
 
 
 if __name__ == "__main__":
