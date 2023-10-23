@@ -55,6 +55,10 @@ default_border pixel 5
 focus_follows_mouse no
 #focus_wrapping yes
 
+
+# Hide mouse cursor after a period of inactivity.
+seat seat0 hide_cursor 10000
+
 ### Idle configuration
 #
 # Example configuration:

@@ -100,7 +100,7 @@ def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal[
     print("".join(diff))
 
     match input("overwrite? [Y/n/r[everse]] ").lower():
-        case ""|"y":
+        case "" | "y":
             return "y"
         case "n":
             return "n"
@@ -111,7 +111,7 @@ def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal[
     raise ValueError("must be y, n or r")
 
 
-def symlink_files(folder: str, replace: str, prefix: str="") -> None:
+def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
     """symlink user-writable files."""
     for dirpath, _, filenames in os.walk(folder):
         if dirpath == folder:

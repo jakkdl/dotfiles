@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
+import logging
 import time
 import json
 from datetime import datetime
+from pathlib import Path
 # requires togglCli
 # install with `pip install togglCli` or `poetry add togglCli`
 
-from toggl import api, utils
+from toggl import api  # type: ignore
 #all_clients = api.Client.objects.all()
 #for client in all_clients:
     #print(client, client.name)
 
-def get_current_entry_status():
+LogPath = Path.home() / '.local' / 'share' / 'waybar'
+LogPath.mkdir(exist_ok=True)
+LogPath /= 'toggl_status.log'
+logging.basicConfig(filename=LogPath, encoding='utf-8', level=logging.DEBUG)
+
+def get_current_entry_status() -> str:
     res = []
     current_entry = api.TimeEntry.objects.current()
     if current_entry is None:
@@ -29,7 +36,7 @@ def get_current_entry_status():
 
     return json.dumps({"text": " ".join(res), "alt": "start", "class": "start"})
 
-def get_total_time_today():
+def get_total_time_today() -> float:
     today = datetime.now().date()
     total = 0.0
     for entry in api.TimeEntry.objects.all():
@@ -39,8 +46,10 @@ def get_total_time_today():
 
 
 if __name__ == '__main__':
+    logging.info("started")
     try:
         print(get_current_entry_status())
+        logging.info("succesful")
     except BaseException as error:
-        print(error)
+        logging.info(f"error: {error}")
 

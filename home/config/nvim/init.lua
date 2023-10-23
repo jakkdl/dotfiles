@@ -1,47 +1,71 @@
 -- vim-plug configuration
 -- Reload .vimrc with :so[urce]
 -- reload with `luafile %`
+
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+	vim.fn.system({
+		"git",
+		"clone",
+		"--filter=blob:none",
+		"https://github.com/folke/lazy.nvim.git",
+		"--branch=stable", -- latest stable release
+		lazypath,
+	})
+end
+vim.opt.rtp:prepend(lazypath)
+
+require("lazy").setup({
+	--spec = {
+	--	{ "LazyVim/LazyVim", import = "lazyvim.plugins" },
+	--	{ import = "lazyvim.plugins.extras.coding.copilot" },
+	--	--{ import = "plugins" },
+	--},
+	"neovim/nvim-lspconfig",
+	"jasonccox/vim-wayland-clipboard",
+	"ntpeters/vim-better-whitespace", -- :help better-whitespace
+	"tpope/vim-fugitive", -- git aliases
+	"tpope/vim-eunuch", -- shell helpers
+	"morhetz/gruvbox", -- Another theme
+	--"vim-airline/vim-airline",
+	"plasticboy/vim-markdown",
+	"cespare/vim-toml",
+	--'github/copilot-vim',
+})
+--require("lazy").setup(plugins, opts)
+
 -- % can be used for current file, or $MYVIMRC
 -- and :PlugInstall to install plugins.
 -- Specify a directory for plugins
 -- - For Neovim: stdpath('data') . '/plugged'
 -- - Avoid using standard Vim directory names like 'plugin'
-vim.cmd([[
-call plug#begin('~/.local/share/nvim/plugged')
-]])
-
+--vim.cmd([[
+--call plug#begin('~/.local/share/nvim/plugged')
+--]])
 
 -- Make sure you use single quotes
 -- Plug 'LucHermitte/lh-vim-lib'
 -- Plug 'LucHermitte/local_vimrc'
 -- Plug 'mfulz/cscope.nvim'
 -- Plug 'mxw/vim-prolog'
-local Plug = vim.fn['plug#']
-Plug 'jasonccox/vim-wayland-clipboard'
-Plug 'ntpeters/vim-better-whitespace' -- :help better-whitespace
-Plug 'tpope/vim-fugitive'
-Plug 'tpope/vim-eunuch'
+--local Plug = vim.fn['plug#']
 -- Plug 'ayu-theme/ayu-vim' -- https://github.com/ayu-theme/ayu-vim
-Plug 'morhetz/gruvbox' -- Another theme
-Plug 'vim-airline/vim-airline'
-Plug 'neomake/neomake'
-Plug 'plasticboy/vim-markdown'
-Plug 'cespare/vim-toml'
-vim.cmd([[
-Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
-]])
+--Plug 'neomake/neomake'
+--vim.cmd([[
+--Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': ['markdown', 'vim-plug']}
+--]])
 --  :checkhealth gives warnings
 -- if filereadable("/usr/bin/node")
 --     Plug 'neoclide/coc.nvim', {'branch': 'release'}
 -- endif
 HOME = os.getenv("HOME")
-vim.g.python3_host_prog = HOME .. '/.local/share/nvim/venv/bin/python'
-vim.cmd([[
-Plug 'averms/black-nvim', {'do': ':UpdateRemotePlugins'}
-]])
-Plug 'neovim/nvim-lspconfig'
+vim.g.python3_host_prog = HOME .. "/.local/share/nvim/venv/bin/python"
+-- vim.cmd([[
+-- Plug 'averms/black-nvim', {'do': ':UpdateRemotePlugins'}
+-- ]])
 -- Initialize plugin system
-vim.call('plug#end')
+--vim.call('plug#end')
 
 -- ### vim-markdown
 -- taken from https://jdhao.github.io/2019/01/15/markdown_edit_preview_nvim/
@@ -55,21 +79,9 @@ vim.g.tex_conceal = ""
 vim.g.vim_markdown_math = 1
 
 -- support front matter of various format
-vim.g.vim_markdown_frontmatter = 1  -- for YAML format
-vim.g.vim_markdown_toml_frontmatter = 1  -- for TOML format
-vim.g.vim_markdown_json_frontmatter = 1  -- for JSON format
-
--- #### NEOMAKE ####
--- when to activate neomake
-vim.cmd([[
-call neomake#configure#automake('rw')
-]])
-
--- which linter to enable for Python source file linting
--- vim.g.neomake_python_enabled_makers = ['pylint', 'mypy', 'vulture']
--- vim.g.neomake_python_enabled_makers = ['pylint', 'mypy']
-vim.g.neomake_python_enabled_makers = {'mypy'}
--- vim.g.neomake_javascript_enablem_makers = ['eslint_d']
+vim.g.vim_markdown_frontmatter = 1 -- for YAML format
+vim.g.vim_markdown_toml_frontmatter = 1 -- for TOML format
+vim.g.vim_markdown_json_frontmatter = 1 -- for JSON format
 
 -- ######################
 -- cscope.nvim configuration
@@ -105,8 +117,8 @@ vim.g.neomake_python_enabled_makers = {'mypy'}
 -- set termguicolors     " enable true colors support
 -- autocmd vimenter * ++nested colorscheme gruvbox
 -- set background=dark    " Setting dark mode
--- vim.g.gruvbox_contrast_dark = 'hard'
-vim.o.background = 'light'
+vim.g.gruvbox_contrast_dark = "hard"
+vim.o.background = "dark"
 vim.cmd([[colorscheme gruvbox]])
 -- #### black-nvim
 --
@@ -132,9 +144,9 @@ vim.cmd([[
 syntax on
 filetype plugin indent on
 ]])
-vim.opt.expandtab=true
-vim.opt.shiftwidth=4
-vim.opt.softtabstop=4
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
 
 vim.cmd([[
 autocmd FileType javascript,typescript,typescriptreact set shiftwidth=2
@@ -143,9 +155,9 @@ autocmd FileType javascript,typescript,typescriptreact set softtabstop=2
 
 -- keep the cursor in the middle of the window at all times
 -- https://stackoverflow.com/questions/59408739/how-to-bring-the-marker-to-middle-of-the-screen
-vim.opt.scrolloff=999
+vim.opt.scrolloff = 999
 -- Allow hidden modified buffers, to let us navigate without prompting to save
-vim.opt.hidden=true
+vim.opt.hidden = true
 
 --set colorcolumn=81
 -- doesn't work in nvim?
@@ -154,7 +166,6 @@ vim.opt.hidden=true
 -- https://vi.stackexchange.com/a/658
 
 -- match ColorColumn "\%89v."
-
 
 -- colorscheme desert
 
@@ -165,7 +176,7 @@ vim.opt.hidden=true
 -- When you type the first tab hit, it will complete as much as possible. The
 -- second tab hit will provide a list. The third and subsequent tabs will cycle
 -- through completion options so you can complete the file without further keys.
-vim.opt.wildmode={'longest','list','full'}
+vim.opt.wildmode = { "longest", "list", "full" }
 vim.opt.wildmenu = true
 
 -- cscope
@@ -173,7 +184,7 @@ vim.opt.wildmenu = true
 -- set cscopequickfix=s-,c-,d-,i-,t-,e-
 
 --enable folds
-vim.opt.foldmethod='syntax'
+vim.opt.foldmethod = "syntax"
 -- Start with open folds
 vim.cmd([[
 autocmd FileType * exe "normal zR"
@@ -189,16 +200,8 @@ vim.opt.number = true
 --         so init.vim
 --     endif
 -- endif
-vim.api.nvim_create_user_command(
-    'MySo',
-    "source $MYVIMRC",
-    {bang = true}
-    )
-vim.api.nvim_create_user_command(
-    'MySed',
-    "vimgrep /\\<'iw'\\>/gj' *.py",
-    {bang = true}
-    )
+vim.api.nvim_create_user_command("MySo", "source $MYVIMRC", { bang = true })
+vim.api.nvim_create_user_command("MySed", "vimgrep /\\<'iw'\\>/gj' *.py", { bang = true })
 
 -- vim.api.nvim_create_user_command(
 --     'MySo',
@@ -224,45 +227,46 @@ vim.api.nvim_create_user_command(
 -- map <leader>s :execute "noautocmd vimgrep /\\<" . expand("<cword>") . "\\>/gj **/*." .  expand("%:e") <Bar> cw<CR>
 -- map <leader>s :execute "noautocmd vimgrep /\\<" . expand("<cword>") . "\\>/gj **/*." . expand("%:e") <Bar> cfdo "cfdo %s/" . expand("<cword>") . "/"
 
-
--- pip install pylsp-mypy python-lsp-ruff pylsp-rope python-lsp-black pyls-isort
+-- pip install pylsp-mypy python-lsp-ruff pylsp-rope python-lsp-black
+-- pyls-isort
 
 lspconfig = require("lspconfig")
-lspconfig.pylsp.setup {
-    on_attach = custom_attach,
-    settings = {
-        pylsp = {
-            plugins = {
-                black = { enabled = true },
-                pylsp_mypy = { enabled = true },
-                -- auto-completion
-                jedi_completion = { fuzzy = true },
-                -- import sorting (disabled if ruff is available)
-                pyls_isort = { enabled = true },
+lspconfig.pylsp.setup({
+	on_attach = custom_attach,
+	settings = {
+		pylsp = {
+			plugins = {
+				black = { enabled = true },
+				pylsp_mypy = { enabled = true },
+				pylsp_rope = { enabled = true },
+				--rope_autoimport = { enabled = true, memory = true },
+				-- auto-completion
+				jedi_completion = { fuzzy = true },
+				-- import sorting (disabled if ruff is available)
+				pyls_isort = { enabled = true },
 
-                ruff = {
-                    enabled = true,
-                    lineLength = 120,
-                },
+				ruff = {
+					enabled = true,
+					lineLength = 120,
+				},
 
-                -- disabled
-                -- formatters
-                autopep8 = { enabled = false },
-                yapf = { enabled = false },
-                -- linters
-                pylint = { enabled = false, executable = "pylint" },
-                pyflakes = { enabled = false },
-                mccabe = { enabled = false },
-                pycodestyle = { enabled = false },
-
-            },
-        },
-    },
-    flags = {
-        debounce_text_changes = 200,
-    },
-    capabilities = capabilities,
-}
+				-- disabled
+				-- formatters
+				autopep8 = { enabled = false },
+				yapf = { enabled = false },
+				-- linters
+				pylint = { enabled = false, executable = "pylint" },
+				pyflakes = { enabled = false },
+				mccabe = { enabled = false },
+				pycodestyle = { enabled = false },
+			},
+		},
+	},
+	flags = {
+		debounce_text_changes = 200,
+	},
+	capabilities = capabilities,
+})
 
 -- Setup language servers.
 -- being a bit conservative and keeping these commented out lines for the moment, in case
@@ -286,38 +290,41 @@ lspconfig.pylsp.setup {
 
 -- Global mappings.
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
-vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
-vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+vim.keymap.set("n", "<space>e", vim.diagnostic.open_float)
+vim.keymap.set("n", "[d", vim.diagnostic.goto_prev)
+vim.keymap.set("n", "]d", vim.diagnostic.goto_next)
+vim.keymap.set("n", "<space>q", vim.diagnostic.setloclist)
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
-vim.api.nvim_create_autocmd('LspAttach', {
-  group = vim.api.nvim_create_augroup('UserLspConfig', {}),
-  callback = function(ev)
-    -- Enable completion triggered by <c-x><c-o>
-    vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
+vim.api.nvim_create_autocmd("LspAttach", {
+	group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+	callback = function(ev)
+		-- Enable completion triggered by <c-x><c-o>
+		vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
 
-    -- Buffer local mappings.
-    -- See `:help vim.lsp.*` for documentation on any of the below functions
-    local opts = { buffer = ev.buf }
-    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-    vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
-    vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
-    vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
-    vim.keymap.set('n', '<space>wl', function()
-      print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-    end, opts)
-    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
-    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
-    vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
-    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-    vim.keymap.set('n', '<space>f', function()
-      vim.lsp.buf.format { async = true }
-    end, opts)
-  end,
+		-- Buffer local mappings.
+		-- See `:help vim.lsp.*` for documentation on any of the below functions
+		local opts = { buffer = ev.buf }
+		vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+		vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+		vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+		vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+		vim.keymap.set("n", "<space>wa", vim.lsp.buf.add_workspace_folder, opts)
+		vim.keymap.set("n", "<space>wr", vim.lsp.buf.remove_workspace_folder, opts)
+		vim.keymap.set("n", "<space>wl", function()
+			print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+		end, opts)
+		vim.keymap.set("n", "<space>D", vim.lsp.buf.type_definition, opts)
+		vim.keymap.set("n", "<space>rn", vim.lsp.buf.rename, opts)
+		vim.keymap.set({ "n", "v" }, "<space>ca", vim.lsp.buf.code_action, opts)
+		vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+		vim.keymap.set("n", "<space>f", function()
+			vim.lsp.buf.format({ async = true })
+		end, opts)
+		vim.keymap.set("n", "<space>test", function()
+			vim.lsp.buf.completion({})
+		end, opts)
+	end,
 })

@@ -257,7 +257,13 @@ export TOX_PARALLEL_NO_SPINNER=1
 # always use --develop to save setup time
 alias tox='tox --develop'
 alias toxall='tox --develop -qp -- --no-cov'
-alias gitpruneremote="git fetch --all --prune && git checkout main && git merge && git branch -v|grep '\[gone\]'|awk '{print \$1}'|xargs -I{} git branch -D {}"
+gitpruneremote() {
+    git fetch --all --prune &&
+    git branch -v |
+    awk '/\[gone\]/ {sub(/^[\+*]/, "");print $1}' |
+    xargs -I{} git branch -D {}
+}
+# TODO: delete worktrees
 cst() { cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch }
 export PYRIGHT_PYTHON_FORCE_VERSION=latest
 
