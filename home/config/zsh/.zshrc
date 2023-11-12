@@ -251,8 +251,8 @@ bindkey -v
 bindkey -r '^[/'
 
 function brightness() {
-	ddcutil -q --noverify -d 2 setvcp 10 $1 &&
-	ddcutil -q --noverify -d 1 setvcp 10 $1
+	ddcutil --brief --noverify -d 2 setvcp 10 $1 &&
+	ddcutil --brief --noverify -d 1 setvcp 10 $1
 }
 
 # debug in ipdb

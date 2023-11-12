@@ -1,0 +1,9 @@
+[Unit]
+Description=Reduce screen brightness.
+
+[Service]
+Type=oneshot
+ExecStart=sh -c '/home/h/.config/systemd/user/evening_brightness.sh'
+
+[Install]
+RequiredBy=timers.target

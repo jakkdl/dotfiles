@@ -50,7 +50,10 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
             abstarget = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.join(dirpath, filename)
 
-            if not (os.path.isfile(path) or os.path.islink(path)):
+            if not os.access(base, mode=os.R_OK):
+                print(f'No permissions to check {path}')
+                continue
+            elif not (os.path.isfile(path) or os.path.islink(path)):
                 print(f"{path} missing")
 
             elif os.path.islink(path):
@@ -96,13 +99,15 @@ def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal[
             target_content = file.readlines()
     except PermissionError:
         res = input(f'No permission to view {path}, overwrite? [Y/n]')
-        return 'n' not in res.lower()
+        if res.lower() == "n":
+            return "n"
     diff = list(difflib.context_diff(path_content, target_content))
     if not diff:
         return "n"
 
     print(
         f"{path} content differs. The former is on system, the latter in Git.\n"
+        "`+` means it's in git and not in system."
         "`-` means it's on system and not in git."
     )
     print("".join(diff))
@@ -136,13 +141,13 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
             real_target_path = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.relpath(real_target_path, basepath)
 
-            if not os.path.isfile(path):
+            if not os.path.isfile(path) and not os.path.islink(path):
                 print(f"{path} missing")
                 match input("overwrite? [Y/n "):
                     case "n":
                         continue
                     case x if x.lower() in "y":
-                        os.makedirs(os.path.dirname(path))
+                        os.makedirs(os.path.dirname(path), 0o777, True)
                         os.symlink(target, path)
                         continue
                     case _:

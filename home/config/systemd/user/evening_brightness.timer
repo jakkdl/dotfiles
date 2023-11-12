@@ -1,0 +1,13 @@
+[Unit]
+Description=Reduce screen brightness in the evening.
+
+[Timer]
+# set correct status at boot
+OnBootSec=10s
+# restore brightness & temperature in the morning
+OnCalendar=*-*-* 7:00:00
+# dim and redshift in the evening
+OnCalendar=*-*-* 22:00:00
+
+[Install]
+WantedBy=timers.target
