@@ -85,10 +85,18 @@ def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal[
     # check if read rights
     path_content = []
     target_content = []
-    with open(path, encoding="utf-8") as file:
-        path_content = file.readlines()
-    with open(target, encoding="utf-8") as file:
-        target_content = file.readlines()
+    #with open(path, encoding="utf-8") as file:
+    #    path_content = file.readlines()
+    #with open(target, encoding="utf-8") as file:
+    #    target_content = file.readlines()
+    try:
+        with open(path, encoding='utf-8') as file:
+            path_content = file.readlines()
+        with open(target, encoding='utf-8') as file:
+            target_content = file.readlines()
+    except PermissionError:
+        res = input(f'No permission to view {path}, overwrite? [Y/n]')
+        return 'n' not in res.lower()
     diff = list(difflib.context_diff(path_content, target_content))
     if not diff:
         return "n"

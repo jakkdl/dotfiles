@@ -250,6 +250,11 @@ bindkey -v
 # remove esc-/ keybind, since it collides with esc, /
 bindkey -r '^[/'
 
+function brightness() {
+	ddcutil -q --noverify -d 2 setvcp 10 $1 &&
+	ddcutil -q --noverify -d 1 setvcp 10 $1
+}
+
 # debug in ipdb
 export PYTHONBREAKPOINT=ipdb.set_trace
 # don't have irritating spinners in tox

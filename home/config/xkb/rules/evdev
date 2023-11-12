@@ -1,3 +1,4 @@
 ! option = symbols
   nordic_letters_on_dvorak:nordicletters    = +nordic_letters_on_dvorak(nordicletters)
+  mhw:mhw_    = +mhw(mhw_)
 ! include %S/evdev
