@@ -60,6 +60,17 @@ focus_follows_mouse no
 seat seat0 hide_cursor 10000
 
 ### Idle configuration
+# inhibit idle when steam game is running
+# probably need mpv as well
+# https://github.com/swaywm/swayidle/issues/68#issuecomment-670779101
+# for firefox, consider https://github.com/loops/idlehack
+# https://github.com/bdwalton/inhibit-bridge
+
+# for_window [class=".*"] inhibit_idle fullscreen
+# for_window [app_id=".*"] inhibit_idle fullscreen
+# If you have some window in fullscreen mode, this make stop swayidle
+
+for_window [class="steam_app*"] inhibit_idle focus
 #
 # Example configuration:
 #
@@ -71,6 +82,10 @@ exec swayidle -w \
 # This will lock your screen after 300 seconds of inactivity, then turn off
 # your displays after another 300 seconds, and turn your screens back on when
 # resumed. It will also lock your screen before your computer goes to sleep.
+
+# also note
+# pkill -SIGUSR1 swayidle
+# will prematurely trigger it
 
 ### Input configuration
 #
