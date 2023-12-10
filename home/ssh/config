@@ -1,9 +1,0 @@
-AddKeysToAgent yes
-Host liu
-    HostName ssh.edu.liu.se
-    User johli603
-    IdentityFile ~/.ssh/id_rsa
-Host liu-static
-    HostName 130.236.64.96
-    User johli603
-    IdentityFile ~/.ssh/id_rsa
