@@ -1,0 +1,13 @@
+[Match]
+MACAddress=c8:7f:54:51:c0:47
+#Name=eno1
+
+[Network]
+DHCP=yes
+DNS=1.1.1.1
+
+[Link]
+NamePolicy=keep kernel database onboard slot path
+AlternativeNamesPolicy=database onboard slot path
+MACAddressPolicy=persistent
+WakeOnLan=magic
