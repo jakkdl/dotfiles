@@ -3,7 +3,7 @@ xkb_symbols "nordicletters" {
     key <AC04> { [  u,      U,      aring,      Aring   ]   };
 
     //ä on alt+e (qwerty d)
-    key <AC03> { [  E,      e,      adiaeresis, Adiaeresis  ]	};
+    key <AC03> { [  e,      E,      adiaeresis, Adiaeresis  ]	};
 
     //ö on alt+o (qwerty s)
     key <AC02> { [  o,      O,      odiaeresis, Odiaeresis  ]	};
@@ -21,7 +21,7 @@ xkb_symbols "nordicletters" {
 
 xkb_symbols "nordicletters2" {
     //å on alt+u (qwerty f)
-    key <AC04> { [  U,      u,      aring,      Aring   ]   };
+    key <AC04> { [  u,      U,      aring,      Aring   ]   };
 
     //ä on alt+e (qwerty d)
     key <AC03> { [  e,      E,      adiaeresis, Adiaeresis  ]	};
