@@ -306,7 +306,7 @@ function mybranches() {
 # requires package "extra/expect" for unbuffer, to trick the program to think we're
 # outputting to a terminal and keep color w/o having to pass --color=always or similar
 function man() {
-    /usr/bin/man $@ || which $@ && unbuffer $@ --help |& less -R
+    /usr/bin/man "$@" || { which $@ && unbuffer $@ --help |& less -R }
 }
 cst() { cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch }
 export PYRIGHT_PYTHON_FORCE_VERSION=latest
