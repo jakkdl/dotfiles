@@ -71,3 +71,6 @@ path+=("$HOME/Bin")
 export PATH
 
 export IPYTHONDIR="$HOME/.config/ipython"
+
+# default toggl timers to the anthropic project
+export TOGGL_PROJECT='anthropic'

@@ -1,0 +1,16 @@
+[Unit]
+Description=Stop running toggl timer
+#Requires=network-online.target
+#After=network-online.target
+Before=sleep.target
+#Before=systemd-suspend.service
+Conflicts=sleep.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/h/.local/bin/toggl stop
+#ExecStop=/usr/local/bin/av-down
+#RemainAfterExit=yes
+
+[Install]
+WantedBy=sleep.target
