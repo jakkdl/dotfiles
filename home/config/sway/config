@@ -101,7 +101,7 @@ exec swayidle -w \
 input 1:1:AT_Translated_Set_2_keyboard {
     xkb_layout "us"
     xkb_variant "dvorak"
-    xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters2"
+    xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters"
 }
 
 input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
@@ -112,12 +112,12 @@ input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
 
 input 4617:8961:Keyboardio_Model_01_Keyboard {
     xkb_layout "us"
-    xkb_options "nordic_letters_on_dvorak:nordicletters"
+    xkb_options "nordic_letters_on_dvorak:nordicletters_hardware"
 }
 
 input 13462:6:Keyboardio_Model_100_Keyboard {
     xkb_layout "us"
-    xkb_options "nordic_letters_on_dvorak:nordicletters"
+    xkb_options "nordic_letters_on_dvorak:nordicletters_hardware"
 }
 #
 # You can get the names of your inputs by running: swaymsg -t get_inputs
