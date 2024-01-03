@@ -3,13 +3,34 @@ xkb_symbols "nordicletters" {
     key <AC04> { [  u,      U,      aring,      Aring   ]   };
 
     //ä on alt+e (qwerty d)
+    key <AC03> { [  E,      e,      adiaeresis, Adiaeresis  ]	};
+
+    //ö on alt+o (qwerty s)
+    key <AC02> { [  o,      O,      odiaeresis, Odiaeresis  ]	};
+
+    //ø on alt+, (qwerty e)
+    key <AD03> { [  period, greater,ae,         AE          ]	};
+
+    //ø on alt+, (qwerty w)
+    key <AD02> { [  comma,  less,   oslash,     Oslash  ]	};
+
+
+    // make right alt altGr
+    include "level3(ralt_switch)"
+};
+
+xkb_symbols "nordicletters2" {
+    //å on alt+u (qwerty f)
+    key <AC04> { [  U,      u,      aring,      Aring   ]   };
+
+    //ä on alt+e (qwerty d)
     key <AC03> { [  e,      E,      adiaeresis, Adiaeresis  ]	};
 
     //ö on alt+o (qwerty s)
     key <AC02> { [  o,      O,      odiaeresis, Odiaeresis  ]	};
 
     //ø on alt+, (qwerty e)
-    key <AD03> { [  period, greater,ae,         Ae          ]	};
+    key <AD03> { [  period, greater,ae,         AE          ]	};
 
     //ø on alt+, (qwerty w)
     key <AD02> { [  comma,  less,   oslash,     Oslash  ]	};

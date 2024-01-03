@@ -225,7 +225,7 @@ alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
 alias sway='sway &> /tmp/sway.log'
 
-alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install -q --upgrade pip'
+alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy'
 
 gitclone() { git clone git@github.com:"$1".git; }
 ast() { astpretty --no "$1" | less -FX}
@@ -264,11 +264,50 @@ alias tox='tox --develop'
 alias toxall='tox --develop -qp -- --no-cov'
 gitpruneremote() {
     git fetch --all --prune &&
+
+    for branch in $(git branch -v |
+            awk '/\[gone\]/ {sub(/^[\+*]/, "");print $1}'); do
+        git worktree list |
+            awk "/$branch/"' {print $1}' |
+            xargs basename |
+            xargs git worktree remove
+    done
+
     git branch -v |
-    awk '/\[gone\]/ {sub(/^[\+*]/, "");print $1}' |
+    grep -v '^[\+*]' |
+    awk '/\[gone\]/ {print $1}' |
+    #awk '/\[gone\]/ {sub(/^[\+*]/, "");print $1}' |
     xargs -I{} git branch -D {}
 }
-# TODO: delete worktrees
+alias gfpush="git commit -a --amend --no-edit && git push --force-with-lease"
+alias tox='tox -q'
+function newpr() {
+    gitdir=$(git rev-parse --git-common-dir)
+    cd ${gitdir:h} &&
+    git branch $1 origin/HEAD &&
+    git worktree add $1 $1 &&
+    cd $1 &&
+    ln -rs ../tox.ini
+}
+function resetfile() {
+    git reset $1 -- $2
+    git restore $2
+    git restore --staged $2
+}
+function ghpr() {
+    gh pr checkout $1
+    git push -u $(git rev-parse --abbrev-ref --symbolic-full-name @\{u\} | cut -d '/' -f 1)
+}
+function mybranches() {
+    git branch --remote --list --sort=-committerdate 'jakkdl/*' |
+        awk -F '/' '{print $2}' |
+        grep -vE 'main|master'
+}
+# requires package "extra/expect" for unbuffer, to trick the program to think we're
+# outputting to a terminal and keep color w/o having to pass --color=always or similar
+function man() {
+    /usr/bin/man $@ || which $@ && unbuffer $@ --help |& less -R
+}
 cst() { cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch }
 export PYRIGHT_PYTHON_FORCE_VERSION=latest
 

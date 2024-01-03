@@ -37,7 +37,6 @@ def check_submodules() -> list[str]:
 
 def copy_folder_contents(folder: str, replace: str) -> list[str]:
     """checks if file contents differ, returns list of commands needed to rectify"""
-    remove = False
     commands = []
     for dirpath, _dirnames, filenames in os.walk(folder):
         # root/ -> /
@@ -46,6 +45,7 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
         # basepath = base
 
         for filename in filenames:
+            remove = False
             path = base + filename
             abstarget = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.join(dirpath, filename)
@@ -143,11 +143,11 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
 
             if not os.path.isfile(path) and not os.path.islink(path):
                 print(f"{path} missing")
-                match input("overwrite? [Y/n "):
+                match input("create symlink? [Y/n "):
                     case "n":
                         continue
                     case x if x.lower() in "y":
-                        os.makedirs(os.path.dirname(path), 0o777, True)
+                        os.makedirs(os.path.dirname(path), exist_ok=True)
                         os.symlink(target, path)
                         continue
                     case _:
