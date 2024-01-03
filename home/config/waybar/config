@@ -1,3 +1,4 @@
+// requires ttf-font-awesome
 {
     // "layer": "top", // Waybar at top layer
     // "position": "bottom", // Waybar position (top|bottom|left|right)
@@ -158,7 +159,7 @@
         // "exec": "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" // Filter player based on name
     },
     "custom/toggl": {
-        "exec": "$HOME/.config/waybar/toggl_status.py",
+        "exec": "FILE=$HOME/.config/waybar/toggl_status.py; test -f $FILE && $FILE",
         "return-type": "json",
         "format": "{icon}{}",
         "interval": 60,

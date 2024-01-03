@@ -101,7 +101,7 @@ exec swayidle -w \
 input 1:1:AT_Translated_Set_2_keyboard {
     xkb_layout "us"
     xkb_variant "dvorak"
-    xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters"
+    xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters2"
 }
 
 input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
@@ -110,14 +110,14 @@ input 3690:780:TrulyErgonomic.com_Truly_Ergonomic_Computer_Keyboard {
     # xkb_options "caps:escape,nordic_letters_on_dvorak:nordicletters"
 }
 
-input 4617:8961:Keyboardio_Model_01 {
+input 4617:8961:Keyboardio_Model_01_Keyboard {
     xkb_layout "us"
-    #xkb_options "nordic_letters_on_dvorak:nordicletters"
+    xkb_options "nordic_letters_on_dvorak:nordicletters"
 }
 
 input 13462:6:Keyboardio_Model_100_Keyboard {
     xkb_layout "us"
-    #xkb_options "nordic_letters_on_dvorak:nordicletters"
+    xkb_options "nordic_letters_on_dvorak:nordicletters"
 }
 #
 # You can get the names of your inputs by running: swaymsg -t get_inputs
@@ -169,7 +169,7 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     # Screenshot, requires grimshot from AUR
     # save location is set in ~/.config/user_dirs.dirs, requires xdg-user-dirs
     bindsym $mod+d exec "grimshot save area"
-    bindsym $mod+Shift+d exec "grimshot save window"
+    bindsym $mod+Shift+d exec "grimshot save output"
 
 
     # herbstluftwm cycle_monitor
