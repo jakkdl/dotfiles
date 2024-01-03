@@ -55,6 +55,8 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
                 continue
             elif not (os.path.isfile(path) or os.path.islink(path)):
                 print(f"{path} missing")
+                if input("copy? [Y/n] ").lower() == "n":
+                    continue
 
             elif os.path.islink(path):
                 actual_target = os.readlink(path)
@@ -98,7 +100,7 @@ def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal[
         with open(target, encoding='utf-8') as file:
             target_content = file.readlines()
     except PermissionError:
-        res = input(f'No permission to view {path}, overwrite? [Y/n]')
+        res = input(f'No permission to view {path}, overwrite? [Y/n] ')
         if res.lower() == "n":
             return "n"
     diff = list(difflib.context_diff(path_content, target_content))
@@ -143,7 +145,7 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
 
             if not os.path.isfile(path) and not os.path.islink(path):
                 print(f"{path} missing")
-                match input("create symlink? [Y/n "):
+                match input("create symlink? [Y/n] "):
                     case "n":
                         continue
                     case x if x.lower() in "y":
