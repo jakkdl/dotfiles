@@ -4,7 +4,8 @@
 # Format is XDG_xxx_DIR="$HOME/yyy", where yyy is a shell-escaped
 # homedir-relative path, or XDG_xxx_DIR="/yyy", where /yyy is an
 # absolute path. No other format is supported.
-# 
+# If entries are getting reset, the most likely reason is paths not existing.
+# It's probably possible to make XDG create them automatically somehow.
 XDG_DESKTOP_DIR="$HOME/Media/desktop"
 XDG_DOWNLOAD_DIR="$HOME/Media/downloads"
 XDG_TEMPLATES_DIR="$HOME/Media/templates"

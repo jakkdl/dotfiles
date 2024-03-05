@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import logging
+import os
 import time
 import json
 from datetime import datetime
@@ -14,8 +15,8 @@ from toggl import api  # type: ignore
 
 LogPath = Path.home() / '.local' / 'share' / 'waybar'
 LogPath.mkdir(exist_ok=True)
-LogPath /= 'toggl_status.log'
-logging.basicConfig(filename=LogPath, encoding='utf-8', level=logging.DEBUG)
+LogPath /= f'toggl_status_{os.getpid()}.log'
+logging.basicConfig(filename=LogPath, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 def get_current_entry_status() -> str:
     res = []

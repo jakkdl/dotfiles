@@ -1,0 +1,10 @@
+# use GTK dark mode if available (doesn't work currently)
+gtk_dark=true
+# case insensitive search
+insensitive=true
+# If true hides the scroll bars, default is false.
+hide_scroll=true
+# Sets the prompt to be display[ed] in the search box, default is the name of the mode.
+prompt=""
+# Specifies whether wofi should be dynamically shrunk to fit the number of visible lines or if it should always stay the same size. Default is false.
+dynamic_lines=true

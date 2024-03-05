@@ -258,7 +258,8 @@ function brightness() {
 # debug in ipdb
 export PYTHONBREAKPOINT=ipdb.set_trace
 # don't have irritating spinners in tox
-export TOX_PARALLEL_NO_SPINNER=1
+# currently bugged, see https://github.com/tox-dev/tox/issues/3193
+# export TOX_PARALLEL_NO_SPINNER=1
 # always use --develop to save setup time
 alias tox='tox --develop'
 alias toxall='tox --develop -qp -- --no-cov'
@@ -281,6 +282,13 @@ gitpruneremote() {
 }
 alias gfpush="git commit -a --amend --no-edit && git push --force-with-lease"
 alias tox='tox -q'
+
+# if running with pre-commit, and `git commit -a` fails with autofixes
+# it's nontrivial to actually find what changes were made.
+# So we first add the files to the index, and only afterwards commit, so
+# if it fails we can do `git diff` and see the changes.
+alias gitac='git add -u && git commit'
+
 function newpr() {
     gitdir=$(git rev-parse --git-common-dir)
     cd ${gitdir:h} &&
@@ -302,6 +310,18 @@ function mybranches() {
     git branch --remote --list --sort=-committerdate 'jakkdl/*' |
         awk -F '/' '{print $2}' |
         grep -vE 'main|master'
+}
+function darkmode() {
+    #foreground
+    echo -ne '\e]10;#ebdbb2\e\'
+    # background
+    echo -ne '\e]11;#282828\e\'
+}
+function lightmode() {
+    #foreground
+    echo -ne '\e]10;#3c3836\e\'
+    #background
+    echo -ne '\e]11;#fbf1c7\e\'
 }
 # requires package "extra/expect" for unbuffer, to trick the program to think we're
 # outputting to a terminal and keep color w/o having to pass --color=always or similar

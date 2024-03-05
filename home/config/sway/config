@@ -19,14 +19,17 @@ set $right l
 #set $term footclient
 set $term foot
 
+# Used for focus_workspace
 set $output_count $(swaymsg -t get_outputs | grep -c name)
 
 # Your preferred application launcher
 # Note: pass the final command to swaymsg so that the resulting window can be opened
 # on the original workspace that the command was run on.
 # set $menu dmenu_path | dmenu | xargs swaymsg exec --
-set $menu wofi --show=drun --lines=5 --prompt="" --gtk-dark
-set $emoji wofi --show=dmenu -i --cache-file=$XDG_CACHE_HOME/wofi-emojis -b --prompt="" < ~/.config/sway/emoji_list| cut -d ' ' -f 1 | tr -d '\n' | wl-copy
+set $menu wofi --show=drun --lines=5
+set $emoji_menu wofi --show=dmenu --cache-file=$XDG_CACHE_HOME/wofi-emojis < ~/.config/sway/emoji_list| cut -d ' ' -f 1 | tr -d '\n' | wl-copy
+set $projects $(toggl projects ls | grep True | cut -f 2 -d " ")
+set $toggl_menu wofi --show=dmenu --cache-file=$XDG_CACHE_HOME/wofi-toggl-projects --prompt="start toggl with project:" <<< $projects | xargs -I % toggl start --project=% && pkill -RTMIN+3 waybar
 
 # Configure screen capture for OBS
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
@@ -128,7 +131,9 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym $mod+t exec $term
 
     # Launch emoji picker
-    bindsym $mod+i exec $emoji
+    bindsym $mod+i exec $emoji_menu
+
+    bindsym $mod+g exec $toggl_menu
 
     # Kill focused window
     bindsym $mod+Ctrl+c kill
@@ -153,6 +158,7 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym $mod+r exec "rename_workspace.py"
 
     # volume
+    # button4 = scroll up, button5 = scroll down
     bindsym --whole-window $mod+button4 exec "pactl set-sink-volume @DEFAULT_SINK@ +3%"
     bindsym --whole-window $mod+button5 exec "pactl set-sink-volume @DEFAULT_SINK@ -3%"
 
@@ -175,6 +181,31 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     # herbstluftwm cycle_monitor
     bindsym $mod+BackSpace focus output right ; focus output up
 
+#
+# Layout stuff:
+#
+    # You can "split" the current object of your focus with
+    # $mod+b or $mod+v, for horizontal and vertical splits
+    # respectively.
+    bindsym $mod+b splith
+    bindsym $mod+v splitv
+
+    # Switch the current container between different layout styles
+    bindsym $mod+s layout stacking
+    bindsym $mod+w layout tabbed
+    bindsym $mod+e layout toggle split
+
+    # Make the current focus fullscreen
+    bindsym $mod+f fullscreen
+
+    # Toggle the current focus between tiling and floating mode
+    bindsym $mod+Shift+space floating toggle
+
+    # Swap focus between the tiling area and the floating area
+    bindsym $mod+space focus mode_toggle
+
+    # Move focus to the parent container
+    bindsym $mod+a focus parent
 #
 # Moving around:
 #
@@ -227,31 +258,6 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym $mod+Shift+0 move container to workspace number 0
     # Note: workspaces can have any name you want, not just numbers.
     # We just use 1-10 as the default.
-#
-# Layout stuff:
-#
-    # You can "split" the current object of your focus with
-    # $mod+b or $mod+v, for horizontal and vertical splits
-    # respectively.
-    bindsym $mod+b splith
-    bindsym $mod+v splitv
-
-    # Switch the current container between different layout styles
-    bindsym $mod+s layout stacking
-    bindsym $mod+w layout tabbed
-    bindsym $mod+e layout toggle split
-
-    # Make the current focus fullscreen
-    bindsym $mod+f fullscreen
-
-    # Toggle the current focus between tiling and floating mode
-    bindsym $mod+Shift+space floating toggle
-
-    # Swap focus between the tiling area and the floating area
-    bindsym $mod+space focus mode_toggle
-
-    # Move focus to the parent container
-    bindsym $mod+a focus parent
 #
 # Scratchpad:
 #
