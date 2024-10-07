@@ -50,6 +50,15 @@ output * bg #000000 solid_color
 #output eDP-1 mode --custom 1600x900 pos 0 0 scale 1
 #1.64
 
+# fraction scaling makes xwayland apps blurry, but I've managed to configure
+# most to run natively:
+# Electron apps fixed by modifying desktop launcher: discord, signal
+# Electron app with a config file: spotify-launcher
+# OBS-Studio - needs qt6-wayland + env variable in /etc/environment
+# Still broken:
+# Steam - https://github.com/ValveSoftware/steam-for-linux/issues/4924
+output "LG Electronics LG HDR 4K 111NTKFGH949" scale 1.5
+
 # hide window titles
 default_border pixel 5
 
@@ -63,17 +72,19 @@ focus_follows_mouse no
 seat seat0 hide_cursor 10000
 
 ### Idle configuration
-# inhibit idle when steam game is running
 # probably need mpv as well
 # https://github.com/swaywm/swayidle/issues/68#issuecomment-670779101
 # for firefox, consider https://github.com/loops/idlehack
 # https://github.com/bdwalton/inhibit-bridge
 
-# for_window [class=".*"] inhibit_idle fullscreen
-# for_window [app_id=".*"] inhibit_idle fullscreen
-# If you have some window in fullscreen mode, this make stop swayidle
+# inhibit idle when fullscreen window is visible
+for_window [class=".*"] inhibit_idle fullscreen
+for_window [app_id=".*"] inhibit_idle fullscreen
 
+# inhibit idle when steam game is running
+# not all steam games set this class
 for_window [class="steam_app*"] inhibit_idle focus
+for_window [class="EtG.x86_86"] inhibit_idle
 #
 # Example configuration:
 #
@@ -118,10 +129,18 @@ input 4617:8961:Keyboardio_Model_01_Keyboard {
     xkb_options "nordic_letters_on_dvorak:nordicletters_hardware"
 }
 
+input 13462:6:Keyboardio_Model_100 {
+    xkb_layout "us"
+    xkb_options "nordic_letters_on_dvorak:nordicletters_hardware"
+}
+
 input 13462:6:Keyboardio_Model_100_Keyboard {
     xkb_layout "us"
     xkb_options "nordic_letters_on_dvorak:nordicletters_hardware"
 }
+
+
+
 #
 # You can get the names of your inputs by running: swaymsg -t get_inputs
 # Read `man 5 sway-input` for more information about this section.

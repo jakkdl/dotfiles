@@ -5,6 +5,7 @@
 if [[ ! -d $XDG_CACHE_HOME/zsh ]]; then
   mkdir $XDG_CACHE_HOME/zsh
 fi
+zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 
 
@@ -223,7 +224,10 @@ alias rm='rm -I'
 alias ln='ln -vi'
 alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
-alias sway='sway &> /tmp/sway.log'
+alias sway='sway &> ~/.config/sway/log'
+
+# install using `pipx install gpt-command-line`
+alias claude='gpt --model claude-3-5-sonnet-20240620'
 
 alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy'
 
@@ -348,3 +352,10 @@ fi
 autoload edit-command-line
 zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
+
+
+# home assistant
+#source ~/.config/zsh/hass_token
+#export HASS_SERVER=http://192.168.1.100:8123
+# auto-completion
+#source <(_HASS_CLI_COMPLETE=zsh_source hass-cli)

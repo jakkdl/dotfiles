@@ -153,6 +153,16 @@ autocmd FileType javascript,typescript,typescriptreact set shiftwidth=2
 autocmd FileType javascript,typescript,typescriptreact set softtabstop=2
 ]])
 
+-- xml
+vim.g.xml_syntax_folding = 1
+
+vim.cmd([[
+  augroup XMLFolding
+    autocmd!
+    autocmd FileType xml setlocal foldmethod=syntax
+  augroup end
+]])
+
 -- keep the cursor in the middle of the window at all times
 -- https://stackoverflow.com/questions/59408739/how-to-bring-the-marker-to-middle-of-the-screen
 vim.opt.scrolloff = 999
