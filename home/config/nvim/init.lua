@@ -32,6 +32,8 @@ require("lazy").setup({
 	"plasticboy/vim-markdown",
 	"cespare/vim-toml",
 	--'github/copilot-vim',
+        {"nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
+        "f-person/auto-dark-mode.nvim"
 })
 --require("lazy").setup(plugins, opts)
 
@@ -117,8 +119,8 @@ vim.g.vim_markdown_json_frontmatter = 1 -- for JSON format
 -- set termguicolors     " enable true colors support
 -- autocmd vimenter * ++nested colorscheme gruvbox
 -- set background=dark    " Setting dark mode
-vim.g.gruvbox_contrast_dark = "hard"
-vim.o.background = "dark"
+vim.g.gruvbox_contrast_dark = "light"
+vim.o.background = "light"
 vim.cmd([[colorscheme gruvbox]])
 -- #### black-nvim
 --
@@ -257,6 +259,11 @@ lspconfig.pylsp.setup({
 
 				ruff = {
 					enabled = true,
+                                        formatEnabled = false,
+                                        extendIgnore = {
+                                            "E501", -- line too long
+                                            "Q000", -- single quotes
+                                        },
 					lineLength = 120,
 				},
 
@@ -338,3 +345,19 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		end, opts)
 	end,
 })
+
+-- Dynamic switching of theme depending on org.freedesktop.appearance.color-scheme
+return {
+  "f-person/auto-dark-mode.nvim",
+  opts = {
+    update_interval = 3000,
+    set_dark_mode = function()
+      vim.api.nvim_set_option_value("background", "dark", {})
+      vim.cmd("colorscheme gruvbox")
+    end,
+    set_light_mode = function()
+      vim.api.nvim_set_option_value("background", "light", {})
+      vim.cmd("colorscheme gruvbox")
+    end,
+  },
+}

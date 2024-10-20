@@ -19,3 +19,5 @@
         cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""
 [difftool "nvimdiff"]
         cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""
+[blame]
+	ignoreRevsFile = .git-blame-ignore-revs

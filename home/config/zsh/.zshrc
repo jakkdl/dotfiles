@@ -116,15 +116,20 @@ source $ZSH/oh-my-zsh.sh
 
 
 #### ZPLUG ####
-export ZPLUG_HOME=$XDG_DATA_HOME/zplug
-export ZPLUG_CACHE_DIR=$XDG_CACHE_HOME/zplug
+#export ZPLUG_HOME=$XDG_DATA_HOME/zplug
+#export ZPLUG_CACHE_DIR=$XDG_CACHE_HOME/zplug
 
 #source "$ZPLUG_HOME/init.zsh"
-source "$SYS_ROOT/usr/share/zsh/scripts/zplug/init.zsh"
-zplug 'MichaelAquilina/zsh-autoswitch-virtualenv'
+#source "$SYS_ROOT/usr/share/zsh/scripts/zplug/init.zsh"
+#zplug 'MichaelAquilina/zsh-autoswitch-virtualenv'
 
 # source plugins and add commands to $PATH
-zplug load --verbose
+#zplug load --verbose
+#
+
+# rip zplug, long live sheldon
+#### sheldon ####
+eval "$(sheldon source)"
 
 
 #### zsh-autoswitch-virtualenv ####
@@ -224,16 +229,18 @@ alias rm='rm -I'
 alias ln='ln -vi'
 alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
-alias sway='sway &> ~/.config/sway/log'
+alias sway='sway &> ~/.local/state/sway.log'
 
 # install using `pipx install gpt-command-line`
 alias claude='gpt --model claude-3-5-sonnet-20240620'
 
-alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy'
+alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy ipdb'
 
 gitclone() { git clone git@github.com:"$1".git; }
 ast() { astpretty --no "$1" | less -FX}
 astlines() { astpretty "$1" | less -FX}
+gitaddfork() { git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git && git fetch --all && git config remote.pushDefault jakkdl && git config push.autoSetupRemote true}
+
 
 # make sudo use aliases as well
 alias sudo='sudo '
@@ -247,6 +254,16 @@ alias sudo='sudo '
 function pip() { command pip $@ && /usr/bin/pkill zsh --signal=USR1 }
 # Trap SIGUSR1 signal, sent by pacman hook, to rehash the tab completion cache
 TRAPUSR1() { rehash }
+# pkill -USR2 zsh
+TRAPUSR2() {
+    last_scheme=$(tail -n 1 ~/.config/.theme_history)
+    if [ "$last_scheme" = "gruvbox-dark" ];then
+        /usr/bin/theme.sh gruvbox
+    elif [ "$last_scheme" = "gruvbox" ]; then
+        /usr/bin/theme.sh gruvbox-dark
+    fi
+}
+/usr/bin/theme.sh $(tail -n 1 ~/.config/.theme_history)
 
 # enable vi mode
 bindkey -v
@@ -296,10 +313,18 @@ alias gitac='git add -u && git commit'
 function newpr() {
     gitdir=$(git rev-parse --git-common-dir)
     cd ${gitdir:h} &&
-    git branch $1 origin/HEAD &&
+    git branch $1 origin/main &&
     git worktree add $1 $1 &&
     cd $1 &&
-    ln -rs ../tox.ini
+    yes n | ln -rs ../tox.ini
+}
+function newpr_master() {
+    gitdir=$(git rev-parse --git-common-dir)
+    cd ${gitdir:h} &&
+    git branch $1 origin/master &&
+    git worktree add $1 $1 &&
+    cd $1 &&
+    yes n | ln -rs ../tox.ini
 }
 function resetfile() {
     git reset $1 -- $2

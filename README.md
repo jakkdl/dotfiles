@@ -87,3 +87,24 @@ $ pacman -U yay-[version].pkg.tar.zst
 ```
 $ yay -S oh-my-zsh-git
 ```
+
+## moar stuff
+
+install wl-clipboard
+    xdg-utils: for content type inference in wl-copy (?)
+
+expect - for unbuffer, for man alias
+
+xdg-utils
+
+
+noto-fonts-emoji (emoji picker, etc)
+ttf-fonts-awesome (waybar)
+
+
+
+dark-mode switching
+sudo pacman -S xdg-desktop-portal-gtk
+
+# create screenshot dir. Should maybe be somewhere
+mkdir ~/Media/pictures/screenshot

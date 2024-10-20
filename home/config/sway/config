@@ -88,10 +88,15 @@ for_window [class="EtG.x86_86"] inhibit_idle
 #
 # Example configuration:
 #
+set $waylock 'waylock -ignore-empty-password -fork-on-lock -input-color 0x105b66 -init-color 0x104b56'
+
 exec swayidle -w \
-         timeout 600 'swaylock -f -c 000000' \
+         #timeout 600 'swaylock -f -c 000000' \
+         timeout 600 $waylock \
          timeout 1200 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"' \
-         before-sleep 'swaylock -f -c 000000'
+         timeout 1500 'systemctl suspend' \
+         before-sleep $waylock
+         # before-sleep 'swaylock -f -c 101010'
 #
 # This will lock your screen after 300 seconds of inactivity, then turn off
 # your displays after another 300 seconds, and turn your screens back on when
@@ -263,6 +268,16 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym $mod+8 exec "focus_workspace 8 $output_count"
     bindsym $mod+9 exec "focus_workspace 9 $output_count"
     bindsym $mod+0 exec "focus_workspace 0 $output_count"
+    bindsym $mod+Ctrl+0 exec "focus_workspace 10 $output_count"
+    bindsym $mod+Ctrl+1 exec "focus_workspace 11 $output_count"
+    bindsym $mod+Ctrl+2 exec "focus_workspace 12 $output_count"
+    bindsym $mod+Ctrl+3 exec "focus_workspace 13 $output_count"
+    bindsym $mod+Ctrl+4 exec "focus_workspace 14 $output_count"
+    bindsym $mod+Ctrl+5 exec "focus_workspace 15 $output_count"
+    bindsym $mod+Ctrl+6 exec "focus_workspace 16 $output_count"
+    bindsym $mod+Ctrl+7 exec "focus_workspace 17 $output_count"
+    bindsym $mod+Ctrl+8 exec "focus_workspace 18 $output_count"
+    bindsym $mod+Ctrl+9 exec "focus_workspace 19 $output_count"
 
     # Move focused container to workspace
     bindsym $mod+Shift+1 move container to workspace number 1
@@ -275,6 +290,16 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym $mod+Shift+8 move container to workspace number 8
     bindsym $mod+Shift+9 move container to workspace number 9
     bindsym $mod+Shift+0 move container to workspace number 0
+    bindsym $mod+Shift+Ctrl+0 move container to workspace number 10
+    bindsym $mod+Shift+Ctrl+1 move container to workspace number 11
+    bindsym $mod+Shift+Ctrl+2 move container to workspace number 12
+    bindsym $mod+Shift+Ctrl+3 move container to workspace number 13
+    bindsym $mod+Shift+Ctrl+4 move container to workspace number 14
+    bindsym $mod+Shift+Ctrl+5 move container to workspace number 15
+    bindsym $mod+Shift+Ctrl+6 move container to workspace number 16
+    bindsym $mod+Shift+Ctrl+7 move container to workspace number 17
+    bindsym $mod+Shift+Ctrl+8 move container to workspace number 18
+    bindsym $mod+Shift+Ctrl+9 move container to workspace number 19
     # Note: workspaces can have any name you want, not just numbers.
     # We just use 1-10 as the default.
 #
@@ -284,11 +309,11 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     # You can send windows there and get them back later.
 
     # Move the currently focused window to the scratchpad
-    #bindsym $mod+Shift+minus move scratchpad
+    bindsym $mod+Shift+minus move scratchpad
 
     # Show the next scratchpad window or hide the focused scratchpad window.
     # If there are multiple scratchpad windows, this command cycles through them.
-    #bindsym $mod+minus scratchpad show
+    bindsym $mod+minus scratchpad show
 #
 # Resizing containers:
 #

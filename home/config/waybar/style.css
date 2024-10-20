@@ -296,3 +296,6 @@ label:focus {
 #custom-toggl.stop {
     background-color: #e07171;
 }
+#custom-toggl.error {
+    background-color: #c05151;
+}

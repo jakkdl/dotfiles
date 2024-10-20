@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/h/.config/waybar/.venv/bin/python3
 import logging
 import os
 import time
@@ -6,7 +6,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 # requires togglCli
-# install with `pip install togglCli` or `poetry add togglCli`
+# python -m venv .venv
+# source .venv/bin/activate
+# pip install togglCli
+# toggl config
+
 
 from toggl import api  # type: ignore
 #all_clients = api.Client.objects.all()
@@ -21,6 +25,7 @@ logging.basicConfig(filename=LogPath, encoding='utf-8', level=logging.DEBUG, for
 def get_current_entry_status() -> str:
     res = []
     current_entry = api.TimeEntry.objects.current()
+    logging.info(f"current_entry {current_entry}")
     if current_entry is None:
         return json.dumps({"text": "", "alt": "stop", "class": "stop"})
 
@@ -51,6 +56,10 @@ if __name__ == '__main__':
     try:
         print(get_current_entry_status())
         logging.info("succesful")
+    except requests.exceptions.ConnectiorError:
+        print(json.dumps({"text": "", "alt": "stop", "class": "start"}))
     except BaseException as error:
         logging.info(f"error: {error}")
+        raise
 
+    logging.info("quitting")

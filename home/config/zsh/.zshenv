@@ -74,3 +74,4 @@ export IPYTHONDIR="$HOME/.config/ipython"
 
 # default toggl timers to the anthropic project
 export TOGGL_PROJECT='anthropic'
+export TOGGL_CONFIG="$HOME/.config/togglrc"
