@@ -236,7 +236,7 @@ alias claude='gpt --model claude-3-5-sonnet-20240620'
 
 alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy ipdb'
 
-gitclone() { git clone git@github.com:"$1".git; }
+gitclone() { git clone git@github.com:"$1".git && cd ${1:t}; }
 ast() { astpretty --no "$1" | less -FX}
 astlines() { astpretty "$1" | less -FX}
 gitaddfork() { git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git && git fetch --all && git config remote.pushDefault jakkdl && git config push.autoSetupRemote true}
@@ -384,3 +384,17 @@ bindkey -M vicmd v edit-command-line
 #export HASS_SERVER=http://192.168.1.100:8123
 # auto-completion
 #source <(_HASS_CLI_COMPLETE=zsh_source hass-cli)
+
+
+# enable Ctrl-Shift-g in foot for copying the output of last command to pastebuffer
+function precmd {
+    # also enable jumping between prompts (C-S-x/z)
+    print -Pn "\e]133;A\e\\"
+    if ! builtin zle; then
+        print -n "\e]133;D\e\\"
+    fi
+}
+
+function preexec {
+    print -n "\e]133;C\e\\"
+}
