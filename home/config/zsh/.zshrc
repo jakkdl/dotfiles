@@ -133,7 +133,7 @@ eval "$(sheldon source)"
 
 
 #### zsh-autoswitch-virtualenv ####
-export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
+export AUTOSWITCH_VIRTUAL_ENV_DIR=".venv"
 
 
 
@@ -232,7 +232,7 @@ alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 alias sway='sway &> ~/.local/state/sway.log'
 
 # install using `pipx install gpt-command-line`
-alias claude='gpt --model claude-3-5-sonnet-20240620'
+alias claude='gpt --model claude-3-5-sonnet-latest'
 
 alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy ipdb'
 
