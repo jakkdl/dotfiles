@@ -119,8 +119,8 @@ vim.g.vim_markdown_json_frontmatter = 1 -- for JSON format
 -- set termguicolors     " enable true colors support
 -- autocmd vimenter * ++nested colorscheme gruvbox
 -- set background=dark    " Setting dark mode
-vim.g.gruvbox_contrast_dark = "light"
-vim.o.background = "light"
+vim.g.gruvbox_contrast_dark = "dark"
+vim.o.background = "dark"
 vim.cmd([[colorscheme gruvbox]])
 -- #### black-nvim
 --

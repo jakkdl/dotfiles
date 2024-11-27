@@ -239,7 +239,14 @@ alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install -
 gitclone() { git clone git@github.com:"$1".git && cd ${1:t}; }
 ast() { astpretty --no "$1" | less -FX}
 astlines() { astpretty "$1" | less -FX}
-gitaddfork() { git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git && git fetch --all && git config remote.pushDefault jakkdl && git config push.autoSetupRemote true}
+gitaddfork() {
+    git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git &&
+    git fetch --all &&
+    git config remote.pushDefault jakkdl &&
+    git config push.autoSetupRemote true &&
+    git config branch.main.rebase true &&
+    git config branch.main.pushRemote no_push
+}
 
 
 # make sudo use aliases as well
@@ -257,13 +264,24 @@ TRAPUSR1() { rehash }
 # pkill -USR2 zsh
 TRAPUSR2() {
     last_scheme=$(tail -n 1 ~/.config/.theme_history)
+    INHIBIT_THEME_HIST=1 /usr/bin/theme.sh "$last_scheme"
+}
+INHIBIT_THEME_HIST=1 /usr/bin/theme.sh $(tail -n 1 ~/.config/.theme_history)
+
+function toggle_theme() {
+    last_scheme=$(tail -n 1 ~/.config/.theme_history)
+    echo "last scheme $last_scheme"
     if [ "$last_scheme" = "gruvbox-dark" ];then
         /usr/bin/theme.sh gruvbox
     elif [ "$last_scheme" = "gruvbox" ]; then
         /usr/bin/theme.sh gruvbox-dark
     fi
+    new_scheme=$(tail -n 1 ~/.config/.theme_history)
+    echo "new scheme $new_scheme"
+    pkill -USR2 zsh
+    sleep 0.1
+    echo $new_scheme > ~/.config/.theme_history
 }
-/usr/bin/theme.sh $(tail -n 1 ~/.config/.theme_history)
 
 # enable vi mode
 bindkey -v
@@ -311,14 +329,17 @@ alias tox='tox -q'
 alias gitac='git add -u && git commit'
 
 function newpr() {
-    gitdir=$(git rev-parse --git-common-dir)
+    git fetch --all &&
+    gitdir=$(git rev-parse --git-common-dir) &&
     cd ${gitdir:h} &&
+    git rebase &&
     git branch $1 origin/main &&
     git worktree add $1 $1 &&
     cd $1 &&
     yes n | ln -rs ../tox.ini
 }
 function newpr_master() {
+    git fetch --all &&
     gitdir=$(git rev-parse --git-common-dir)
     cd ${gitdir:h} &&
     git branch $1 origin/master &&
@@ -351,6 +372,10 @@ function lightmode() {
     echo -ne '\e]10;#3c3836\e\'
     #background
     echo -ne '\e]11;#fbf1c7\e\'
+}
+
+function relpyright() {
+    pyright --outputjson "$@" | jq -r -f ~/.local/bin/pyright_rel_path.jq --arg cwd "$(pwd)"
 }
 # requires package "extra/expect" for unbuffer, to trick the program to think we're
 # outputting to a terminal and keep color w/o having to pass --color=always or similar
