@@ -237,15 +237,18 @@ alias claude='gpt --model claude-3-5-sonnet-latest'
 alias mkvenv='python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip python-lsp-black python-lsp-ruff pylsp-mypy ipdb'
 
 gitclone() { git clone git@github.com:"$1".git && cd ${1:t}; }
-ast() { astpretty --no "$1" | less -FX}
-astlines() { astpretty "$1" | less -FX}
-gitaddfork() {
-    git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git &&
+ast() { astpretty --no "$1" | less -FX }
+astlines() { astpretty "$1" | less -FX }
+gitconfigfork() {
     git fetch --all &&
     git config remote.pushDefault jakkdl &&
     git config push.autoSetupRemote true &&
     git config branch.main.rebase true &&
     git config branch.main.pushRemote no_push
+}
+gitaddfork() {
+    git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git &&
+    gitconfigfork
 }
 
 
