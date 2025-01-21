@@ -46,7 +46,7 @@ $ sudo systemctl enable --now suspend_low_bat.timer
 
 ## install stuff
 ```
-$ sudo pacman -S sway swaylock swayidle polkit waybar wofi xdg-desktop-portal-wlr python-i3ipc
+$ sudo pacman -S sway swaylock swayidle polkit waybar wofi xdg-desktop-portal-wlr python-i3ipc mako swaybg
 $ sudo pacman -S python-pipx
 $ pipx install togglCli
 $ sudo pacman -S firefox

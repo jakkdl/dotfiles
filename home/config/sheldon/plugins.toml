@@ -14,9 +14,6 @@ shell = "zsh"
 
 [plugins]
 
-#[plugins.colored-man-pages]
-#github = "ael-code/zsh-colored-man-pages"
-
 [plugins.zsh-autoswitch-virtualenv]
 github = "MichaelAquilina/zsh-autoswitch-virtualenv"
 
