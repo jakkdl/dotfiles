@@ -75,3 +75,6 @@ export IPYTHONDIR="$HOME/.config/ipython"
 # default toggl timers to the anthropic project
 export TOGGL_PROJECT='anthropic'
 export TOGGL_CONFIG="$HOME/.config/togglrc"
+
+# Print a visual bell on password prompt
+export SUDO_PROMPT=$'\a[sudo] password for %p: '

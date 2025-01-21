@@ -2,6 +2,8 @@
 -- Reload .vimrc with :so[urce]
 -- reload with `luafile %`
 
+-- TODO: undo history (for mksession, and others)
+
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -261,8 +263,22 @@ lspconfig.pylsp.setup({
 					enabled = true,
                                         formatEnabled = false,
                                         extendIgnore = {
-                                            "E501", -- line too long
-                                            "Q000", -- single quotes
+                                            "E117",
+                                            "E203",
+                                            "E226", -- 
+                                            "E227",
+                                            "E231", -- missing-whitespace
+                                            "E251", -- unexpected-spaces-around-keyword-parameter-equals
+                                            "E301",
+                                            "E302", -- newlines
+                                            "E303",
+                                            "E305",
+                                            "E501", -- line-too-long
+                                            "F401", -- unused-import
+                                            "W293",
+                                            "Q000", -- bad-quotes-inline-string (single instead of double)
+                                            "I001", -- unsorted-imports
+                                            -- "UP034", -- extraneous parantheses (not fixed by black)
                                         },
 					lineLength = 120,
 				},

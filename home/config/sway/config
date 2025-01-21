@@ -90,13 +90,13 @@ for_window [class="EtG.x86_86"] inhibit_idle
 #
 set $waylock 'waylock -ignore-empty-password -fork-on-lock -input-color 0x105b66 -init-color 0x104b56'
 
+         # timeout 600 'swaylock -f -c 000000' \
+         # before-sleep 'swaylock -f -c 101010'
 exec swayidle -w \
-         #timeout 600 'swaylock -f -c 000000' \
          timeout 600 $waylock \
          timeout 1200 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"' \
          timeout 1500 'systemctl suspend' \
          before-sleep $waylock
-         # before-sleep 'swaylock -f -c 101010'
 #
 # This will lock your screen after 300 seconds of inactivity, then turn off
 # your displays after another 300 seconds, and turn your screens back on when

@@ -296,6 +296,12 @@ function brightness() {
 
 # debug in ipdb
 export PYTHONBREAKPOINT=ipdb.set_trace
+
+# pytest does not handle PYTHONBREAKPOINT perfectly, e.g. not disabling faulthandler_timeout
+# but if we supply the same with --pdbcls then we're fine
+alias pytest='pytest --pdbcls=IPython.terminal.debugger:TerminalPdb'
+
+
 # don't have irritating spinners in tox
 # currently bugged, see https://github.com/tox-dev/tox/issues/3193
 # export TOX_PARALLEL_NO_SPINNER=1
@@ -333,7 +339,7 @@ function newpr() {
     gitdir=$(git rev-parse --git-common-dir) &&
     cd ${gitdir:h} &&
     git rebase &&
-    git branch $1 origin/main &&
+    git branch --no-track $1 origin/main &&
     git worktree add $1 $1 &&
     cd $1 &&
     yes n | ln -rs ../tox.ini
@@ -342,7 +348,7 @@ function newpr_master() {
     git fetch --all &&
     gitdir=$(git rev-parse --git-common-dir)
     cd ${gitdir:h} &&
-    git branch $1 origin/master &&
+    git branch --no-track $1 origin/master &&
     git worktree add $1 $1 &&
     cd $1 &&
     yes n | ln -rs ../tox.ini
