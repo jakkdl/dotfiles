@@ -161,7 +161,7 @@
     "custom/toggl": {
         "exec": "FILE=$HOME/.config/waybar/toggl_status.py; test -f $FILE && $FILE",
         "return-type": "json",
-        "format": "{icon}{}",
+        "format": "{icon}{0}",
         "interval": 60,
         "format-icons": {
             "stop": "",

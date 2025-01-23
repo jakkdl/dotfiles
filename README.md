@@ -11,7 +11,7 @@ Steps to set up new linux machine:
 
 ## sudo
 ```
-# pacman -S sudo
+# pacman -S sudo neovim
 # EDITOR=nvim
 # visudo
 ```
@@ -48,8 +48,10 @@ $ sudo systemctl enable --now suspend_low_bat.timer
 ```
 $ sudo pacman -S sway swaylock swayidle polkit waybar wofi xdg-desktop-portal-wlr python-i3ipc mako swaybg
 $ sudo pacman -S python-pipx
-$ pipx install togglCli
+$ yay -S python-togglcli
 $ sudo pacman -S firefox
+$ sudo pacman -S starship ttf-firacode-nerd
+sudo pacman -S sheldon
 ```
 
 ## wireless
@@ -85,7 +87,7 @@ $ pacman -U yay-[version].pkg.tar.zst
 
 ## install AUR stuff
 ```
-$ yay -S oh-my-zsh-git
+...
 ```
 
 ## moar stuff

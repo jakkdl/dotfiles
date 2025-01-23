@@ -2,7 +2,17 @@
 
 -- TODO: undo history (for mksession, and others)
 
+-- TODO: fugitive status line
+--STATUSLINE                                      *fugitive-statusline*
+--
+--                                *FugitiveStatusline()* *fugitive#statusline()*
+--Add %{FugitiveStatusline()} to your statusline to get an indicator including
+--the current branch and the currently edited file's commit.  If you don't have
+--a statusline, this one matches the default when 'ruler' is set:
+-->
+--        set statusline=%<%f\ %h%m%r%{FugitiveStatusline()}%=%-14.(%l,%c%V%)\ %P
 
+-- yay -S nvim-lazy
 require("config.lazy")
 
 
@@ -165,9 +175,11 @@ lspconfig.pylsp.setup({
                                             "E302", -- newlines
                                             "E303",
                                             "E305",
+                                            "E306",
                                             "E501", -- line-too-long
                                             "F401", -- unused-import
                                             "W293",
+                                            "W391",
                                             "Q000", -- bad-quotes-inline-string (single instead of double)
                                             "I001", -- unsorted-imports
                                             -- "UP034", -- extraneous parantheses (not fixed by black)

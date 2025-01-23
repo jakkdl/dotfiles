@@ -1,15 +1,18 @@
-#!/home/h/.config/waybar/.venv/bin/python3
+#!/usr/bin/env python3
 import logging
 import os
 import time
 import json
 from datetime import datetime
 from pathlib import Path
+
 # requires togglCli
 # python -m venv .venv
 # source .venv/bin/activate
 # pip install togglCli
 # toggl config
+# pipx should work.. but doesn't
+# but there's an AUR package, although out of date
 
 
 from toggl import api  # type: ignore

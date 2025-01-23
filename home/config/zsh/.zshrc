@@ -86,6 +86,7 @@ alias sway='sway &> ~/.local/state/sway.log'
 # install using `pipx install gpt-command-line`
 alias claude='gpt --model claude-3-5-sonnet-latest'
 
+# sudo pacman -S python-virtualenv python-uv
 alias mkvenv='virtualenv .venv && source .venv/bin/activate && uv pip install --upgrade python-lsp-black python-lsp-ruff pylsp-mypy ipdb'
 alias rmvenv='deactivate && \rm -r .venv'
 
