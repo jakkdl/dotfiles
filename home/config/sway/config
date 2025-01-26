@@ -370,6 +370,7 @@ bar swaybar_command waybar
 # I don't think this line works
 #exec "foot --server"
 
+# notification daemon
 exec mako
 
 include /etc/sway/config.d/*

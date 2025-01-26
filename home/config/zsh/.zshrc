@@ -81,7 +81,7 @@ alias rm='rm -I'
 alias ln='ln -vi'
 alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
-alias sway='sway &> ~/.local/state/sway.log'
+alias sway='sway | ts &> ~/.local/state/sway.log'
 
 # install using `pipx install gpt-command-line`
 alias claude='gpt --model claude-3-5-sonnet-latest'
