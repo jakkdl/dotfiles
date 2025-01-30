@@ -1,7 +1,7 @@
 [user]
 	email = 11260241+jakkdl@users.noreply.github.com
 	name = jakkdl
-	signingkey = F100FA72EBD2FFDD13597D032F74FAC3A5B8BB2F
+	signingkey = 6C2806BE9FBD74109492336D442D17F1B28AF751!
 [pull]
 	ff = only
 [push]
@@ -22,3 +22,5 @@
         cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""
 [blame]
 	ignoreRevsFile = .git-blame-ignore-revs
+[commit]
+	gpgsign = true
