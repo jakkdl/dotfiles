@@ -159,12 +159,13 @@ lspconfig.pylsp.setup({
 				-- auto-completion
 				jedi_completion = { fuzzy = true },
 				-- import sorting (disabled if ruff is available)
-				pyls_isort = { enabled = true },
+				pyls_isort = { enabled = false },
 
 				ruff = {
 					enabled = true,
                                         formatEnabled = false,
                                         extendIgnore = {
+                                            "D204", -- whitespace after class docstring
                                             "E117",
                                             "E203",
                                             "E226", --
@@ -176,13 +177,15 @@ lspconfig.pylsp.setup({
                                             "E303",
                                             "E305",
                                             "E306",
-                                            "E501", -- line-too-long
+                                            -- "E501", -- line-too-long
                                             "F401", -- unused-import
+                                            "W291", -- trailing-whitespace
                                             "W293",
                                             "W391",
                                             "Q000", -- bad-quotes-inline-string (single instead of double)
                                             "I001", -- unsorted-imports
                                             -- "UP034", -- extraneous parantheses (not fixed by black)
+                                            "UP035", -- import from collections.abc instead of typing
                                         },
 					lineLength = 120,
 				},

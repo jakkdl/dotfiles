@@ -51,7 +51,8 @@ $ sudo pacman -S python-pipx
 $ yay -S python-togglcli
 $ sudo pacman -S firefox
 $ sudo pacman -S starship ttf-firacode-nerd
-sudo pacman -S sheldon
+$ sudo pacman -S sheldon
+$ sudo pacman -S moreutils  # ts
 ```
 
 ## wireless

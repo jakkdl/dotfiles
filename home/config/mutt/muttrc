@@ -47,7 +47,7 @@ set ssl_starttls
 
 # composing
 set realname="John Litborn"
-set from="h6@pm.me"
+set from="xxx"
 set forward_format="Fwd: %s"
 set mime_forward                    # when forwarding, include attachments
 set mime_forward_rest               # ''
