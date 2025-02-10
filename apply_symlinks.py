@@ -50,6 +50,8 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
             abstarget = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.join(dirpath, filename)
 
+            # TODO: this thinks we don't have perms to
+            # view dirs that doesn't exist
             if not os.access(base, mode=os.R_OK):
                 print(f'No permissions to check {path}')
                 continue
