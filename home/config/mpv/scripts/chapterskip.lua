@@ -6,9 +6,9 @@
 
 local categories = {
     prologue = "^Prologue/^Intro",
-    opening = "^OP/ OP$/^Opening",
+    opening = "^OP/ OP$/^Opening/^Studio Logo$",
     ending = "^ED/ ED$/^Ending",
-    preview = "Preview$"
+    preview = "Preview$/^Next Time$"
 }
 
 local options = {
