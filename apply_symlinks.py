@@ -86,7 +86,7 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
     return commands
 
 
-def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal["r"]:
+def diff_files(path: str, target: str, ask_identical: bool = False) -> Literal["y"] | Literal["n"] | Literal["r"]:
     """check file contents, prompt whether to overwrite.
     returns 'y' if it should be overwritten"""
     # check if read rights
@@ -106,15 +106,18 @@ def diff_files(path: str, target: str) -> Literal["y"] | Literal["n"] | Literal[
         if res.lower() == "n":
             return "n"
     diff = list(difflib.context_diff(path_content, target_content))
-    if not diff:
+    if not diff and not ask_identical:
         return "n"
 
-    print(
-        f"{path} content differs. The former is on system, the latter in Git.\n"
-        "`+` means it's in git and not in system."
-        "`-` means it's on system and not in git."
-    )
-    print("".join(diff))
+    if not diff and ask_identical:
+        print(f"{path} has no file diff, create symlink?\n")
+    else:
+        print(
+            f"{path} content differs. The former is on system, the latter in Git.\n"
+            "`+` means it's in git and not in system."
+            "`-` means it's on system and not in git."
+        )
+        print("".join(diff))
 
     match input("overwrite? [Y/n/r[everse]] ").lower():
         case "" | "y":
@@ -144,7 +147,6 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
             path = base + filename
             real_target_path = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.relpath(real_target_path, basepath)
-
             if not os.path.isfile(path) and not os.path.islink(path):
                 print(f"{path} missing")
                 match input("create symlink? [Y/n] "):
@@ -158,7 +160,7 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
                         raise ValueError("must be y, n or r")
 
             elif not os.path.islink(path):
-                match diff_files(path, real_target_path):
+                match diff_files(path, real_target_path, ask_identical=True):
                     case "n":
                         continue
                     case "r":

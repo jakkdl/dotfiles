@@ -1,0 +1,10 @@
+anthropic_api_key: !include "/home/h/.config/gpt-cli/anthropic_api_key.txt"
+default_assistant: my_claude
+assistants:
+  my_claude:
+    model: claude-3-5-sonnet-latest
+    messages:
+      - {
+        role: system,
+        content: !include "/home/h/.config/gpt-cli/prompt.txt"
+      }

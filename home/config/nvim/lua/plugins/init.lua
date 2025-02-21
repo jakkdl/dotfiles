@@ -1,6 +1,5 @@
 return {
 	"neovim/nvim-lspconfig",
-        {"nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
 	"ntpeters/vim-better-whitespace", -- :help better-whitespace
 	"tpope/vim-eunuch", -- shell helpers
 	"tpope/vim-fugitive", -- git aliases

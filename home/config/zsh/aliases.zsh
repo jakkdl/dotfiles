@@ -65,8 +65,10 @@ function toggle_theme() {
     echo "last scheme $last_scheme"
     if [ "$last_scheme" = "gruvbox-dark" ];then
         /usr/bin/theme.sh gruvbox
+        gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
     elif [ "$last_scheme" = "gruvbox" ]; then
         /usr/bin/theme.sh gruvbox-dark
+        gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
     fi
     new_scheme=$(tail -n 1 ~/.config/.theme_history)
     echo "new scheme $new_scheme"
@@ -117,20 +119,12 @@ alias gitac='git add -u && git commit'
 
 function newpr() {
     [[ $# -eq 0 ]] && echo "Error: Parameter required" && return 1
+    MAIN_BRANCH=$(git rev-parse --verify main &> /dev/null && echo "main" || echo "master")
     git fetch --all &&
     gitdir=$(git rev-parse --git-common-dir) &&
     cd ${gitdir:h} &&
     git rebase &&
-    git branch --no-track $1 origin/main &&
-    git worktree add $1 $1 &&
-    cd $1 &&
-    yes n | ln -rs ../tox.ini
-}
-function newpr_master() {
-    git fetch --all &&
-    gitdir=$(git rev-parse --git-common-dir)
-    cd ${gitdir:h} &&
-    git branch --no-track $1 origin/master &&
+    git branch --no-track $1 origin/$MAIN_BRANCH &&
     git worktree add $1 $1 &&
     cd $1 &&
     yes n | ln -rs ../tox.ini
