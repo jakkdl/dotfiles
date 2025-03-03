@@ -23,34 +23,9 @@ vim.g.maplocalleader = "\\"
 
 
 -- Only check for updates on startup once a week
---local function should_check_updates()
---  local state_file = vim.fn.stdpath("state") .. "/lazy/last_update"
---  local week_in_seconds = 7 * 24 * 60 * 60
---
---  local file = io.open(state_file, "r")
---  if not file then
---    file = io.open(state_file, "w")
---    file:write(tostring(os.time()))
---    file:close()
---    return true
---  end
---
---  local last_check = tonumber(file:read("*all"))
---  file:close()
---
---  if os.time() - last_check > week_in_seconds then
---    file = io.open(state_file, "w")
---    file:write(tostring(os.time()))
---    file:close()
---    return true
---  end
---
---  return false
---end
-
 local function should_check_updates()
   local state_file = vim.fn.stdpath("state") .. "/lazy/last_update"
-  local period = 1 * 24 * 60 * 60
+  local period = 7 * 24 * 60 * 60
 
   local stat = vim.loop.fs_stat(state_file)
   if not stat then

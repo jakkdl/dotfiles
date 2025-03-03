@@ -176,6 +176,7 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
                     f"{path} incorrect target\n\t{actual_target} "
                     f"should be\n\t{target}"
                 )
+                # TODO: prompt to fix
 
 
 def fix(path: str, target: str) -> None:

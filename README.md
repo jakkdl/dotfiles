@@ -53,6 +53,8 @@ $ sudo pacman -S firefox
 $ sudo pacman -S starship ttf-firacode-nerd
 $ sudo pacman -S sheldon
 $ sudo pacman -S moreutils  # ts
+$ sudo pacman -S swaync  # notifications
+$ sudo pacman -S pacman-contrib  # paccache, pacman hook
 ```
 
 ## wireless
