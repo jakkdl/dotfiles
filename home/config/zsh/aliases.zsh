@@ -18,19 +18,80 @@ alias rm='rm -I'
 alias ln='ln -vi'
 alias pacmanremoveorphans='pacman -Qqtd | sudo pacman -Rns -'
 
+alias connect_bose='bluetoothctl connect AC:BF:71:69:CF:20'
+
 # ts add timestamps, requires extra/moreutils
 alias sway='sway | ts &> ~/.local/state/sway.log'
 
 # install using `pipx install gpt-command-line`
-alias claude='gpt --model claude-3-5-sonnet-latest'
+alias cclaude='gpt --model claude-4-6-sonnet-latest'
 
 # sudo pacman -S python-virtualenv python-uv
-alias mkvenv='virtualenv .venv && source .venv/bin/activate && uv pip install --upgrade python-lsp-black python-lsp-ruff pylsp-mypy ipdb'
+gitrootdir() {
+    local gitdir=$(git rev-parse --git-common-dir)
+    [[ -z $gitdir ]] && return 1
+    # if relative, prepend pwd
+    [[ $gitdir = /* ]] || gitdir=$PWD/$gitdir
+    echo ${gitdir:h}
+}
+check_args() {
+    # usage:
+    # check args $NUMARGS $# || return 1
+    local expected=${1:-0}
+    local actual=${2:-$#}
+
+    if [[ $actual -ne $expected ]]; then
+        echo "Error: Expected $expected arguments, got $actual" >&2
+        return 1
+    fi
+}
+
+mkvenv() {
+    check_args 0 $# || return 1
+    local project_dir=${$(gitrootdir):t}  # :t is zsh for tail/basename
+    #[[ -z $project_dir ]] && return 1
+
+    # Base packages for all projects
+    local -a base_packages=(
+        python-lsp-black
+        python-lsp-ruff
+        pylsp-mypy
+        ipython
+        ipdb
+        pre-commit
+    )
+
+    # Project-specific package mapping
+    typeset -A project_packages
+    project_packages=(
+        [flake8-async]="-rrequirements-typing.txt  tox  tox-uv  pytest  pytest-xdist  hypothesis  hypothesmith pre-commit -e. astpretty"
+        [pytest]="-e .[dev] pre-commit pytest-xdist tox tox-uv"
+        [trio]="-e. -rtest-requirements.txt exceptiongroup tox tox-uv"
+        [bugbear-flake8]="-e.[dev] astpretty tox"
+        [anyio]="-e pytest-xdist --group test"
+        [aiobotocore]="-e .[awscli,boto3,httpx]"
+        [black]="-e .[d] -r test_requirements.txt"
+    )
+
+    virtualenv .venv && source .venv/bin/activate || return 1
+    pip install --upgrade uv
+
+    print "Installing base packages..."
+    uv pip install --upgrade $base_packages
+
+    if (( ${+project_packages[$project_dir]} )); then  # zsh way to test key existence
+        print "Installing project packages for $project_dir..."
+        uv pip install --upgrade ${=project_packages[$project_dir]}  # = splits on whitespace
+    fi
+}
 alias rmvenv='deactivate && \rm -r .venv'
 ast() { astpretty --no "$1" | less -FX }
 astlines() { astpretty "$1" | less -FX }
 
-gitclone() { git clone git@github.com:"$1".git && cd ${1:t}; }
+gitclone() {
+    check_args 1 $# || return 1
+    git clone git@github.com:"$1".git && cd ${1:t};
+}
 gitconfigfork() {
     git fetch --all &&
     git config remote.pushDefault jakkdl &&
@@ -39,7 +100,7 @@ gitconfigfork() {
     git config branch.main.pushRemote no_push
 }
 gitaddfork() {
-    git remote add jakkdl git@github.com:jakkdl/$(basename `git rev-parse --show-toplevel`).git &&
+    git remote add jakkdl git@github.com:jakkdl/${$(gitrootdir):t}.git &&
     gitconfigfork
 }
 alias gwlist='git worktree list'
@@ -118,7 +179,7 @@ alias tox='tox -q'
 alias gitac='git add -u && git commit'
 
 function newpr() {
-    [[ $# -eq 0 ]] && echo "Error: Parameter required" && return 1
+    check_args 1 $# || return 1
     MAIN_BRANCH=$(git rev-parse --verify main &> /dev/null && echo "main" || echo "master")
     git fetch --all &&
     gitdir=$(git rev-parse --git-common-dir) &&
@@ -127,8 +188,23 @@ function newpr() {
     git branch --no-track $1 origin/$MAIN_BRANCH &&
     git worktree add $1 $1 &&
     cd $1 &&
-    yes n | ln -rs ../tox.ini
+    #yes n | ln -rs ../tox.ini
+    mkvenv
 }
+function ghpr() {
+    check_args 1 $# || return 1
+    git fetch --all &&
+    gitdir=$(git rev-parse --git-common-dir) &&
+    cd ${gitdir:h} &&
+    gh pr checkout $1 &&
+    NAME=$(git branch --show-current) &&
+    git checkout $MAIN_BRANCH
+    git worktree add $NAME $NAME &&
+    cd $NAME &&
+    mkvenv
+}
+
+
 function gdwt() {
     git worktree remove $1 && git branch -d $1
 }
@@ -140,11 +216,13 @@ _gdwt() {
 }
 #compdef _gdwt gdwt
 function resetfile() {
+    check_args 2 $# || return 1
     git reset $1 -- $2
     git restore $2
     git restore --staged $2
 }
 function ghpr() {
+    check_args 1 $# || return 1
     gh pr checkout $1
     git push -u $(git rev-parse --abbrev-ref --symbolic-full-name @\{u\} | cut -d '/' -f 1)
 }
@@ -187,4 +265,7 @@ function color_man() {
 function man() {
     color_man "$@" || { which $@ && unbuffer $@ --help |& less -R }
 }
-cst() { cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch }
+cst() {
+    check_args 1 $# || return 1
+    cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch
+}

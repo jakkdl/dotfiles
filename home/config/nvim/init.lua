@@ -168,6 +168,7 @@ lspconfig.pylsp.setup({
                                             "D204", -- whitespace after class docstring
                                             "E117",
                                             "E203",
+                                            "E225", -- whitespace around operator
                                             "E226", --
                                             "E227",
                                             "E231", -- missing-whitespace

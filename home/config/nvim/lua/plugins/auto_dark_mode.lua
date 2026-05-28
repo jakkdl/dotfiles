@@ -6,7 +6,7 @@
 return {
   "f-person/auto-dark-mode.nvim",
   opts = {
-    update_interval = 5000,  -- milliseconds
+    update_interval = 60000,  -- milliseconds
     set_dark_mode = function()
       vim.api.nvim_set_option_value("background", "dark", {})
     end,
