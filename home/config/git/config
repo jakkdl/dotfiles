@@ -1,7 +1,6 @@
 [user]
 	email = h6+github@pm.me
 	name = jakkdl
-	signingkey = 6C2806BE9FBD74109492336D442D17F1B28AF751!
 [pull]
 	ff = only
 [push]
@@ -23,4 +22,7 @@
 [blame]
 	ignoreRevsFile = .git-blame-ignore-revs
 [commit]
-	gpgsign = true
+        gpgsign = true
+[include]
+        # signingkey
+        path = ~/.config/git/config.local

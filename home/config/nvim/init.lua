@@ -146,8 +146,7 @@ vim.api.nvim_create_user_command("MySed", "vimgrep /\\<'iw'\\>/gj' *.py", { bang
 -- pip install pylsp-mypy python-lsp-ruff pylsp-rope python-lsp-black
 -- pyls-isort
 
-lspconfig = require("lspconfig")
-lspconfig.pylsp.setup({
+vim.lsp.config("pylsp", {
 	on_attach = custom_attach,
 	settings = {
 		pylsp = {
@@ -208,6 +207,7 @@ lspconfig.pylsp.setup({
 	},
 	capabilities = capabilities,
 })
+vim.lsp.enable("pylsp")
 
 -- Setup language servers.
 -- being a bit conservative and keeping these commented out lines for the moment, in case

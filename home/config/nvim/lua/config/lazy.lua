@@ -29,6 +29,8 @@ local function should_check_updates()
 
   local stat = vim.loop.fs_stat(state_file)
   if not stat then
+    -- create dir if it doesn't exist
+    vim.fn.mkdir(vim.fn.fnamemodify(state_file, ":h"), "p")
     io.open(state_file, "w"):close()
     return true
   end

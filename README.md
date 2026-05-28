@@ -49,7 +49,7 @@ $ sudo systemctl enable --now suspend_low_bat.timer
 $ sudo pacman -S sway swaylock swayidle polkit waybar wofi xdg-desktop-portal-wlr python-i3ipc mako swaybg
 $ sudo pacman -S python-pipx
 $ yay -S python-togglcli
-$ sudo pacman -S firefox
+$ sudo pacman -S foot firefox
 $ sudo pacman -S starship ttf-firacode-nerd
 $ sudo pacman -S sheldon
 $ sudo pacman -S moreutils  # ts
