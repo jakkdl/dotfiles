@@ -1,0 +1,4 @@
+AddKeysToAgent yes
+
+# Machine/work-specific hosts live in an untracked local file.
+Include ~/.ssh/config.local
