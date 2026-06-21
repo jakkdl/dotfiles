@@ -339,6 +339,16 @@ mode "resize" {
 }
 bindsym $mod+Ctrl+r mode "resize"
 
+#bindsym --whole-window $mod+button4 exec "pactl set-sink-volume @DEFAULT_SINK@ +3%"
+#bindsym --whole-window $mod+button5 exec "pactl set-sink-volume @DEFAULT_SINK@ -3%"
+
+    bindsym --locked XF86AudioMute exec pactl set-sink-mute \@DEFAULT_SINK@ toggle
+    bindsym --locked XF86AudioLowerVolume exec pactl set-sink-volume \@DEFAULT_SINK@ -3%
+    bindsym --locked XF86AudioRaiseVolume exec pactl set-sink-volume \@DEFAULT_SINK@ +3%
+    bindsym --locked XF86AudioMicMute exec pactl set-source-mute \@DEFAULT_SOURCE@ toggle
+    # Special keys to adjust brightness via brightnessctl
+    bindsym --locked XF86MonBrightnessDown exec brightnessctl set 5%-
+    bindsym --locked XF86MonBrightnessUp exec brightnessctl set 5%+
 
 #for_window [title="^$" app_id="firefox.*"] floating enable
 #no_focus [title="^$" app_id="firefox.*"]
