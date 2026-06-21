@@ -47,7 +47,12 @@ check_args() {
 }
 
 mkvenv() {
-    check_args 0 $# || return 1
+    # optional arg: python version/interpreter for the venv, e.g. `mkvenv 3.12`
+    if (( $# > 1 )); then
+        echo "Error: Expected 0 or 1 arguments, got $#" >&2
+        return 1
+    fi
+    local python_version=$1
     local project_dir=${$(gitrootdir):t}  # :t is zsh for tail/basename
     #[[ -z $project_dir ]] && return 1
 
@@ -71,9 +76,12 @@ mkvenv() {
         [anyio]="-e pytest-xdist --group test"
         [aiobotocore]="-e .[awscli,boto3,httpx]"
         [black]="-e .[d] -r test_requirements.txt"
+        [clairos]="-r dev_requirements.txt -r requirements.txt -r typing-requirements.txt"
     )
 
-    virtualenv .venv && source .venv/bin/activate || return 1
+    local -a venv_args=()
+    [[ -n $python_version ]] && venv_args=(--python $python_version)
+    virtualenv $venv_args .venv && source .venv/bin/activate || return 1
     pip install --upgrade uv
 
     print "Installing base packages..."
@@ -103,7 +111,13 @@ gitaddfork() {
     git remote add jakkdl git@github.com:jakkdl/${$(gitrootdir):t}.git &&
     gitconfigfork
 }
+gitwtrm() {
+    check_args 1 $# || return 1
+    git worktree remove $1 &&
+    git branch -d $1
+}
 alias gwlist='git worktree list'
+alias pgp_unlock='echo "" | gpg --clearsign'
 
 # use for `<operation that takes time> && vbeep` to get alerted when it finishes
 # or C-z to suspend; then `fg && vbeep`
@@ -127,9 +141,11 @@ function toggle_theme() {
     if [ "$last_scheme" = "gruvbox-dark" ];then
         /usr/bin/theme.sh gruvbox
         gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
+        pkill -USR2 foot
     elif [ "$last_scheme" = "gruvbox" ]; then
         /usr/bin/theme.sh gruvbox-dark
         gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+        pkill -USR1 foot
     fi
     new_scheme=$(tail -n 1 ~/.config/.theme_history)
     echo "new scheme $new_scheme"
@@ -157,10 +173,11 @@ gitpruneremote() {
 
     for branch in $(git branch -v |
             awk '/\[gone\]/ {sub(/^[\+*]/, "");print $1}'); do
-        git worktree list |
-            awk "/$branch/"' {print $1}' |
-            xargs basename |
-            xargs git worktree remove
+        git worktree list --porcelain |
+            awk -v b="refs/heads/$branch" '
+                /^worktree / {wt=$2}
+                $0=="branch "b {print wt}' |
+            xargs -r git worktree remove
     done
 
     git branch -v |
@@ -180,8 +197,10 @@ alias gitac='git add -u && git commit'
 
 function newpr() {
     check_args 1 $# || return 1
-    MAIN_BRANCH=$(git rev-parse --verify main &> /dev/null && echo "main" || echo "master")
     git fetch --all &&
+    # reads origin's default branch; run `git remote set-head origin --auto` once per repo if unset
+    MAIN_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD) &&
+    MAIN_BRANCH=${MAIN_BRANCH#origin/} &&
     gitdir=$(git rev-parse --git-common-dir) &&
     cd ${gitdir:h} &&
     git rebase &&

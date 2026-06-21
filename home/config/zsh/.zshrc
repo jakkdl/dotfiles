@@ -70,6 +70,10 @@ fi
 # Trap SIGUSR1 signal, sent by pacman hook, to rehash the tab completion cache
 TRAPUSR1() { rehash }
 # pkill -USR2 zsh
+THEME_FILE=~/.config/.theme_history
+if [[ ! -f $THEME_FILE ]]; then
+    echo "gruvbox" > ~/.config/.theme_history
+fi
 TRAPUSR2() {
     last_scheme=$(tail -n 1 ~/.config/.theme_history)
     INHIBIT_THEME_HIST=1 /usr/bin/theme.sh "$last_scheme"
