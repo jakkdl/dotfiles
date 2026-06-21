@@ -27,7 +27,7 @@ local function should_check_updates()
   local state_file = vim.fn.stdpath("state") .. "/lazy/last_update"
   local period = 7 * 24 * 60 * 60
 
-  local stat = vim.loop.fs_stat(state_file)
+  local stat = vim.uv.fs_stat(state_file)
   if not stat then
     -- create dir if it doesn't exist
     vim.fn.mkdir(vim.fn.fnamemodify(state_file, ":h"), "p")
@@ -36,7 +36,7 @@ local function should_check_updates()
   end
 
   if os.time() - stat.mtime.sec > period then
-    vim.loop.fs_utime(state_file, os.time(), os.time())
+    vim.uv.fs_utime(state_file, os.time(), os.time())
     return true
   end
 
