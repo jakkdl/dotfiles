@@ -59,6 +59,12 @@ output * bg #000000 solid_color
 # Steam - https://github.com/ValveSoftware/steam-for-linux/issues/4924
 output "LG Electronics LG HDR 4K 111NTKFGH949" scale 1.5
 
+# Clair Monitors
+output "Dell Inc. DELL U2724DE H6NXG34" position 0 0
+output "Lenovo Group Limited P27h-20 V90AR43K" transform 270 position 2560 0
+# clair laptop
+output "Lenovo Group Limited 0x403D Unknown" position 640 1440
+
 # hide window titles
 default_border pixel 5
 
@@ -373,12 +379,10 @@ bar swaybar_command waybar
 #     }
 # }
 
-# start foot server
-# no longer using foot-client
-#exec "systemctl --user start foot-server@$WAYLAND_DISPLAY.socket"
-
-# I don't think this line works
-#exec "foot --server"
+# border colors
+client.focused #4c7899  #285577 #ffffff #2e9ef4 #9c7899
+smart_borders on
+smart_gaps on
 
 # notification daemon
 exec mako
