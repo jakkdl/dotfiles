@@ -78,3 +78,11 @@ export TOGGL_CONFIG="$HOME/.config/togglrc"
 
 # Print a visual bell on password prompt
 export SUDO_PROMPT=$'\a[sudo] password for %p: '
+
+# prompt for GPG passphrase in TTY
+export GPG_TTY=$(tty)
+export GNUPGHOME="$XDG_CONFIG_HOME/gnupg"
+
+# rootless docker
+#export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
+# We use podman instead
