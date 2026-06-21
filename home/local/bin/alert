@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Send a desktop notification and mark the terminal window this command runs
+# in as urgent, so sway highlights its workspace. Clicking the notification
+# focuses the terminal.
+#
+# Usage: alert [title [body...]]
+#        make build; alert "build done"
+#
+# Sets urgency via sway IPC instead of ringing BEL, so the terminal's
+# bell-notification stays reserved for other applications. Degrades silently
+# outside sway or without notify-send (safe in hooks and over ssh).
+
+title="${1:-Alert}"
+shift 2>/dev/null || true
+body="$*"
+
+# Walk up the process tree to the enclosing terminal emulator; its pid is
+# what sway criteria can match.
+term_pid=""
+if [ -n "$SWAYSOCK" ]; then
+    pid=$$
+    while [ "$pid" -gt 1 ]; do
+        case "$(ps -o comm= -p "$pid" | tr -d ' ')" in
+            foot|footclient|alacritty|kitty)
+                term_pid=$pid
+                break
+                ;;
+        esac
+        pid=$(ps -o ppid= -p "$pid" | tr -d ' ')
+    done
+fi
+
+[ -n "$term_pid" ] && swaymsg "[pid=$term_pid] urgent enable" >/dev/null
+
+command -v notify-send >/dev/null || exit 0
+
+if [ -n "$term_pid" ]; then
+    # The action makes notify-send block until the notification is clicked,
+    # dismissed, or expires, so wait it out in the background.
+    (
+        action=$(notify-send -a alert -t 8000 -A default=Focus "$title" "$body")
+        [ "$action" = default ] && swaymsg "[pid=$term_pid] focus" >/dev/null
+    ) &
+else
+    notify-send -a alert -t 8000 "$title" "$body"
+fi
