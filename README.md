@@ -55,6 +55,8 @@ $ sudo pacman -S sheldon
 $ sudo pacman -S moreutils  # ts
 $ sudo pacman -S swaync  # notifications
 $ sudo pacman -S pacman-contrib  # paccache, pacman hook
+$ sudo pacman -S acpi # suspend-low-bat hook
+$ sudo pacman -S tree-sitter-cli # neovim plugin dep
 ```
 
 ## wireless
@@ -66,6 +68,9 @@ $ sudo systemctl enable --now iwd
 ## fonts for waybar
 
 ## pipewire
+```
+$ sudo pacman -s pipewire pipewire-pules wireplumber pipewire-audio pipewire-alsa pipewire-jack
+```
 
 ## fix zplug
 
@@ -99,9 +104,10 @@ install wl-clipboard
     xdg-utils: for content type inference in wl-copy (?)
 
 expect - for unbuffer, for man alias
-
-xdg-utils
-
+```
+sudo pacman -S xdg-utils # xdg-open, content type inference in wl-copy
+sudo pacman -S brightnessctl
+```
 
 noto-fonts-emoji (emoji picker, etc)
 ttf-fonts-awesome (waybar)
@@ -113,3 +119,14 @@ sudo pacman -S xdg-desktop-portal-gtk
 
 # create screenshot dir. Should maybe be somewhere
 mkdir ~/Media/pictures/screenshot
+
+## DNS
+systemd-resolved requires symlinking /etc/resolv.conf for applications that have it hard-coded (e.g. go)
+```
+sudo ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+```
+
+## LLM
+```
+sudo pacman -S libnotify jq
+```
