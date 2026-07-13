@@ -386,5 +386,7 @@ smart_gaps on
 
 # notification daemon
 exec mako
+# relays system-bus notifications (e.g. earlyoom kills) to mako
+exec systembus-notify
 
 include /etc/sway/config.d/*

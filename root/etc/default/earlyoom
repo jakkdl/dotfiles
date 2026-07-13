@@ -2,9 +2,11 @@
 # /etc/init.d/earlyoom or by systemd from earlyoom.service.
 
 # Options to pass to earlyoom
-EARLYOOM_ARGS="-r 3600 -n --avoid '(^|/)(init|systemd|sway|sshd|foot|footclient|nvim)$' -m 5"
+EARLYOOM_ARGS="-r 3600 -n --avoid '(^|/)(init|systemd|sway|sshd|foot|footclient|nvim|claude)$' --prefer '(^|/)(cc1|cc1plus|ld|lto1|rustc|mksquashfs|qemu-system-.*)$' -m 5"
 
-# -n enables dbus notifications ... though I haven't gotten that to work
+# -n sends kill notifications over the system d-bus; the systembus-notify user
+# daemon must be running to relay them to the desktop (pacman -S systembus-notify,
+# then systemctl --user enable --now systembus-notify)
 
 # Examples:
 

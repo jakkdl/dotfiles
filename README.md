@@ -59,6 +59,12 @@ $ sudo pacman -S acpi # suspend-low-bat hook
 $ sudo pacman -S tree-sitter-cli # neovim plugin dep
 ```
 
+## earlyoom
+```
+$ sudo pacman -S earlyoom systembus-notify
+$ sudo systemctl enable --now earlyoom
+```
+
 ## wireless
 ```
 $ sudo pacman -S iwd
