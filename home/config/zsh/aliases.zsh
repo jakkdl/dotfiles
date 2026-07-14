@@ -195,6 +195,17 @@ alias tox='tox -q'
 # if it fails we can do `git diff` and see the changes.
 alias gitac='git add -u && git commit'
 
+# `git diff`, but fall back to `git diff --staged` when the working tree is clean
+# yet there are staged changes (e.g. right after `gitac`). Calls git diff
+# directly for the actual output so the pager and colouring are preserved.
+gd() {
+    if git diff --quiet "$@" && ! git diff --quiet --staged "$@"; then
+        git diff --staged "$@"
+    else
+        git diff "$@"
+    fi
+}
+
 function newpr() {
     check_args 1 $# || return 1
     git fetch --all &&
