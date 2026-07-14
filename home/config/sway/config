@@ -34,6 +34,10 @@ set $toggl_menu wofi --show=dmenu --cache-file=$XDG_CACHE_HOME/wofi-toggl-projec
 # Configure screen capture for OBS
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 
+# Restore the previous session (runs once per login; exec, not exec_always, so
+# it does not re-run on config reload). See ~/.local/bin/sway-session.
+exec sway-session-restore
+
 ### Output configuration
 #
 # Default wallpaper (more resolutions are available in /usr/share/backgrounds/sway/)
@@ -102,7 +106,7 @@ exec swayidle -w \
          timeout 600 $waylock \
          timeout 1200 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"' \
          timeout 1500 'systemctl suspend' \
-         before-sleep $waylock
+         before-sleep "sway-session-save; $waylock"
 #
 # This will lock your screen after 300 seconds of inactivity, then turn off
 # your displays after another 300 seconds, and turn your screens back on when
@@ -183,7 +187,9 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
 
     # Exit sway (logs you out of your Wayland session)
     #bindsym $mod+Ctrl+Shift+q exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
-    bindsym $mod+Ctrl+Shift+q exit
+    # Save the session first (best-effort; ';' inside the quotes so exit still
+    # happens even if the save fails).
+    bindsym $mod+Ctrl+Shift+q exec "sway-session-save; swaymsg exit"
 
     bindsym $mod+r exec "rename_workspace.py"
 

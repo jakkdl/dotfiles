@@ -1,0 +1,842 @@
+#!/usr/bin/python
+# Pinned to the system interpreter, NOT `env python`, so it always finds the
+# pacman-installed i3ipc even when launched from a terminal with a venv active
+# (an activated venv normally shadows `python` and won't have i3ipc).
+"""Save and restore sway workspaces: layout, programs, cwds and editor state.
+
+Subcommands:
+  save              snapshot all workspaces to a rolling timestamped state dir
+  restore [STATE]   rebuild workspaces from a snapshot (default: latest)
+  list              list available snapshots
+
+Best-effort by design: a failure on one window never aborts the rest, and a
+failed save never overwrites a good snapshot. Meant to be triggered before
+suspend/exit (see the swayidle before-sleep hook and the sway exit binding) and
+on login (exec sway-session-restore in the sway config).
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import contextlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
+from i3ipc import Con, Event
+from i3ipc.aio import Connection
+
+# A saved node is a plain JSON-able dict (window or container); see walk_node.
+Node = dict[str, Any]
+
+# --- paths -------------------------------------------------------------------
+
+STATE_HOME = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+ROOT = STATE_HOME / "sway-session"
+STATES = ROOT / "states"
+LIVEHIST = ROOT / "livehist"  # written by the zsh zshaddhistory hook
+# claude pid -> session id, dropped by the SessionStart hook (see cmd_note_claude)
+CLAUDEMAP = ROOT / "claude"
+LATEST = STATES / "latest"
+KEEP = 10  # rolling snapshots to retain
+
+# --- classification ----------------------------------------------------------
+
+TERMINALS = {"foot", "footclient"}
+SHELLS = {"zsh", "bash", "sh", "fish"}
+# foreground programs we auto-relaunch verbatim (safe, interactive)
+ALLOWLIST = {"less", "man", "btop", "htop", "top", "git", "watch", "tig", "lazygit"}
+# Allowlist of non-terminal GUI windows we will relaunch, keyed by app_id and
+# mapped to the launch command. Acting as an allowlist is deliberate: only these
+# get relaunched, so transient pop-ups, dialogs and other junk windows (whatever
+# their app_id) are recorded in the snapshot but never resurrected. Add real
+# top-level apps here as needed. To find a window's app_id, focus it and run:
+#   swaymsg -t get_tree | jq -r '.. | select(.focused?) | .app_id'
+# (X11/xwayland windows report null there; their identifier is window_class,
+# which classify_window already falls back to.)
+GUI_CMD: dict[str, list[str]] = {
+    "firefox": ["firefox"],
+}
+
+LOG = ROOT / "save.log"  # repointed per subcommand
+
+
+def log(msg: str) -> None:
+    try:
+        ROOT.mkdir(parents=True, exist_ok=True)
+        # keep the log from growing unbounded
+        if LOG.exists() and LOG.stat().st_size > 1_000_000:
+            LOG.write_text(LOG.read_text()[-200_000:])
+        with LOG.open("a") as f:
+            f.write(f"{time.strftime('%F %T')} {msg}\n")
+    except OSError:
+        pass
+
+
+def alert(body: str) -> None:
+    """Desktop-notify a degradation; never raise. Reuses ~/.local/bin/alert."""
+    log(f"ALERT: {body}")
+    with contextlib.suppress(OSError):
+        subprocess.Popen(
+            ["alert", "sway-session", body],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
+# --- /proc probing -----------------------------------------------------------
+
+
+def _read(path: str) -> str:
+    try:
+        return Path(path).read_text()
+    except OSError:
+        return ""
+
+
+def proc_comm(pid: int) -> str:
+    return _read(f"/proc/{pid}/comm").strip()
+
+
+def proc_cmdline(pid: int) -> list[str]:
+    raw = _read(f"/proc/{pid}/cmdline")
+    return [a for a in raw.split("\0") if a]
+
+
+def proc_cwd(pid: int) -> str | None:
+    try:
+        return os.readlink(f"/proc/{pid}/cwd")
+    except OSError:
+        return None
+
+
+def proc_children(pid: int) -> list[int]:
+    """Direct children of pid, via /proc/<pid>/task/<pid>/children."""
+    raw = _read(f"/proc/{pid}/task/{pid}/children")
+    return [int(p) for p in raw.split()]
+
+
+def proc_stat_field(pid: int, idx: int) -> int | None:
+    """Field from /proc/<pid>/stat, handling the parenthesised comm with spaces."""
+    raw = _read(f"/proc/{pid}/stat")
+    rparen = raw.rfind(")")
+    if rparen < 0:
+        return None
+    fields = raw[rparen + 2 :].split()
+    try:
+        return int(fields[idx])
+    except (IndexError, ValueError):
+        return None
+
+
+def claude_ancestor(pid: int) -> int | None:
+    """Nearest ancestor process whose comm is 'claude' (the session owner)."""
+    for _ in range(40):  # bound the walk against a pathological chain
+        ppid = proc_stat_field(pid, 1)  # field 1 after comm is ppid
+        if ppid is None or ppid <= 1:
+            return None
+        if proc_comm(ppid) == "claude":
+            return ppid
+        pid = ppid
+    return None
+
+
+def foreground_pid(shell_pid: int) -> int | None:
+    """Foreground process group leader on the shell's controlling tty.
+
+    /proc/<pid>/stat field 7 (0-indexed here after comm) is tpgid. The leader
+    of that group (pid == pgid) is the program the user is interacting with.
+    Returns None when the shell itself is in the foreground (idle prompt).
+    """
+    # after stripping "pid (comm) ", remaining fields are state(0) ppid(1)
+    # pgrp(2) session(3) tty_nr(4) tpgid(5) ...
+    tpgid = proc_stat_field(shell_pid, 5)
+    if tpgid is None or tpgid <= 0:
+        return None
+    if tpgid == shell_pid:
+        return None
+    return tpgid
+
+
+def ensure_swaysock() -> bool:
+    """i3ipc reads $SWAYSOCK; discover it if a caller (e.g. systemd) lacks it."""
+    if os.environ.get("SWAYSOCK"):
+        return True
+    run = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+    socks = sorted(
+        run.glob(f"sway-ipc.{os.getuid()}.*.sock"),
+        key=lambda p: p.stat().st_mtime if p.exists() else 0,
+    )
+    if socks:
+        os.environ["SWAYSOCK"] = str(socks[-1])
+        return True
+    return False
+
+
+def terminal_shell(term_pid: int) -> int | None:
+    """The interactive shell child of a terminal window pid."""
+    for child in proc_children(term_pid):
+        if proc_comm(child) in SHELLS:
+            return child
+    return None
+
+
+# --- save --------------------------------------------------------------------
+
+
+def nvim_socket(nvim_pid: int) -> str | None:
+    """Path to a live nvim's RPC socket, via its --embed child."""
+    for child in proc_children(nvim_pid):
+        if proc_comm(child) == "nvim":
+            sock = Path(os.environ["XDG_RUNTIME_DIR"]) / f"nvim.{child}.0"
+            if sock.is_socket():
+                return str(sock)
+    return None
+
+
+def dump_nvim_session(nvim_pid: int, dest: Path) -> bool:
+    """Ask a running nvim to write a :mksession; return True on success."""
+    sock = nvim_socket(nvim_pid)
+    if not sock:
+        return False
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    keys = f"<C-\\><C-N>:mksession! {dest}<CR>"
+    try:
+        subprocess.run(
+            ["nvim", "--server", sock, "--remote-send", keys],
+            timeout=2,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    # mksession is async over RPC; give it a moment then confirm.
+    for _ in range(10):
+        if dest.exists() and dest.stat().st_size > 0:
+            return True
+        time.sleep(0.05)
+    return dest.exists()
+
+
+def classify_window(con: Con, snapdir: Path, slot: int) -> Node:
+    """Build the saved descriptor for one window container."""
+    pid = con.pid
+    app_id = con.app_id or con.window_class or "unknown"
+
+    if app_id not in TERMINALS:
+        return {"kind": "gui", "app_id": app_id, "title": con.name}
+
+    shell = terminal_shell(pid)
+    if shell is None:
+        return {"kind": "shell", "cwd": None}
+
+    cwd = proc_cwd(shell)
+    info: Node = {"cwd": cwd, "title": con.name}
+
+    # capture this shell's per-session history for reseeding
+    hist_src = LIVEHIST / f"{shell}.zsh"
+    if hist_src.exists():
+        hist_dest = snapdir / "hist" / f"{slot}.zsh"
+        hist_dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copyfile(hist_src, hist_dest)
+            info["hist"] = f"hist/{slot}.zsh"
+        except OSError:
+            pass
+
+    fg = foreground_pid(shell)
+    if fg is None:
+        info["kind"] = "shell"
+        return info
+
+    comm = proc_comm(fg)
+    cmdline = proc_cmdline(fg)
+
+    if comm == "claude":
+        info["kind"] = "claude"
+        # exact session id, dropped by the SessionStart hook keyed on claude's
+        # pid; lets restore resume THIS conversation, not merely --continue the
+        # cwd's most-recent one (which may belong to another terminal).
+        sid = _read(str(CLAUDEMAP / str(fg))).strip()
+        if sid:
+            info["session_id"] = sid
+    elif comm == "nvim":
+        info["kind"] = "nvim"
+        session = snapdir / "nvim" / f"{slot}.vim"
+        if dump_nvim_session(fg, session):
+            info["session"] = f"nvim/{slot}.vim"
+        else:
+            # fall back to reopening the files from the command line
+            info["files"] = cmdline[1:]
+    elif comm in ALLOWLIST:
+        info["kind"] = "run"
+        info["cmd"] = cmdline
+    else:
+        info["kind"] = "echo"
+        info["cmd"] = cmdline
+    return info
+
+
+def iter_window_leaves(con: Con) -> Iterator[Con]:
+    """Yield leaf window containers under con (tiled or floating subtrees)."""
+    if not con.nodes and not con.floating_nodes:
+        if con.pid:
+            yield con
+        return
+    for c in con.nodes:
+        yield from iter_window_leaves(c)
+    for c in con.floating_nodes:
+        yield from iter_window_leaves(c)
+
+
+def save_floating(ws: Con, snapdir: Path, counter: list[int]) -> list[Node]:
+    """Capture a workspace's floating windows with their geometry."""
+    out: list[Node] = []
+    for fn in ws.floating_nodes:
+        for leaf in iter_window_leaves(fn):
+            slot = counter[0]
+            counter[0] += 1
+            node: Node = {"type": "window"}
+            node.update(classify_window(leaf, snapdir, slot))
+            r = leaf.rect
+            node["geom"] = {"x": r.x, "y": r.y, "w": r.width, "h": r.height}
+            out.append(node)
+    return out
+
+
+def walk_node(con: Con, snapdir: Path, counter: list[int]) -> Node:
+    """Recursively convert a sway container into a saveable node."""
+    leaf = not con.nodes and not con.floating_nodes
+    if leaf and con.pid:
+        slot = counter[0]
+        counter[0] += 1
+        node: Node = {"type": "window", "percent": con.percent}
+        node.update(classify_window(con, snapdir, slot))
+        return node
+    children = [walk_node(c, snapdir, counter) for c in con.nodes]
+    return {
+        "type": "container",
+        "layout": con.layout,
+        "percent": con.percent,
+        "children": children,
+    }
+
+
+async def save(args: argparse.Namespace) -> int:
+    global LOG
+    LOG = ROOT / "save.log"
+    if not ensure_swaysock():
+        log("save: no sway socket found, skipping")
+        return 0
+    try:
+        ipc = await Connection().connect()
+    except Exception as e:  # noqa: BLE001 - best effort
+        log(f"save: cannot connect to sway: {e}")
+        return 0
+
+    tree = await ipc.get_tree()
+    # Which workspace is shown (visible) on each output, and which holds focus,
+    # is only in get_workspaces: tree workspace nodes never carry
+    # .visible/.focused. We record it to reproduce the foreground layout on
+    # restore (which ws lands on which monitor), not just input focus.
+    wsreply = await ipc.get_workspaces()
+    visible_names = {w.name for w in wsreply if w.visible}
+    focused: str | None = next((w.name for w in wsreply if w.focused), None)
+    workspaces: list[Node] = []
+    counter = [0]
+    snapdir = STATES / time.strftime("%Y%m%d-%H%M%S")
+    snapdir.mkdir(parents=True, exist_ok=True)
+
+    for ws in tree.workspaces():
+        if ws.num is not None and ws.num < 0:  # __i3_scratch and friends
+            continue
+        node = walk_node(ws, snapdir, counter)
+        workspaces.append(
+            {
+                "num": ws.num,
+                "name": ws.name,
+                "output": ws.ipc_data.get("output"),
+                "visible": ws.name in visible_names,
+                "layout": ws.layout,
+                "root": node,
+                "floating": save_floating(ws, snapdir, counter),
+            }
+        )
+
+    if not any(_has_window(w["root"]) or w["floating"] for w in workspaces):
+        log("save: no windows captured, discarding empty snapshot")
+        shutil.rmtree(snapdir, ignore_errors=True)
+        return 0
+
+    state = {
+        "version": 1,
+        "saved": time.time(),
+        "focused": focused,
+        "workspaces": workspaces,
+    }
+    (snapdir / "session.json").write_text(json.dumps(state, indent=2))
+
+    # repoint latest, prune old, sweep dead livehist files
+    _repoint_latest(snapdir)
+    _prune()
+    _sweep_livehist()
+    _sweep_claude()
+    log(f"save: wrote {snapdir.name} ({counter[0]} windows)")
+    return 0
+
+
+def _has_window(node: Node) -> bool:
+    if node["type"] == "window":
+        return True
+    return any(_has_window(c) for c in node["children"])
+
+
+def _repoint_latest(snapdir: Path) -> None:
+    tmp = STATES / ".latest.tmp"
+    try:
+        if tmp.is_symlink() or tmp.exists():
+            tmp.unlink()
+        tmp.symlink_to(snapdir.name)
+        os.replace(tmp, LATEST)
+    except OSError as e:
+        log(f"save: could not update latest: {e}")
+
+
+def _snapshot_dirs() -> list[Path]:
+    if not STATES.exists():
+        return []
+    return sorted(
+        (d for d in STATES.iterdir() if d.is_dir() and not d.is_symlink()),
+        key=lambda d: d.name,
+    )
+
+
+def _prune() -> None:
+    dirs = _snapshot_dirs()
+    for d in dirs[:-KEEP]:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def _sweep_livehist() -> None:
+    """Drop per-session history files whose shell is gone."""
+    _sweep_by_pid(LIVEHIST, "*.zsh")
+
+
+def _sweep_claude() -> None:
+    """Drop claude session breadcrumbs whose process is gone."""
+    _sweep_by_pid(CLAUDEMAP, "*")
+
+
+def _sweep_by_pid(dirpath: Path, pattern: str) -> None:
+    """Unlink files under dirpath named for a dead pid (via the file stem)."""
+    if not dirpath.exists():
+        return
+    for f in dirpath.glob(pattern):
+        try:
+            pid = int(f.stem)
+        except ValueError:
+            continue
+        if not Path(f"/proc/{pid}").exists():
+            f.unlink(missing_ok=True)
+
+
+# --- restore -----------------------------------------------------------------
+
+
+def resolve_snapshot(selector: str | None) -> Path | None:
+    if selector in (None, "latest"):
+        if not LATEST.exists():
+            return None
+        return LATEST.resolve()
+    # numeric index from newest (1 = newest)
+    if selector is not None and selector.isdigit():
+        dirs = _snapshot_dirs()
+        idx = int(selector)
+        if 1 <= idx <= len(dirs):
+            return dirs[-idx]
+        return None
+    cand = STATES / str(selector)
+    return cand if cand.exists() else None
+
+
+def build_launch(node: Node, snapdir: Path) -> tuple[list[str], dict[str, str]] | None:
+    """Return (argv, env-extra) to launch a saved window node, or None to skip."""
+    env: dict[str, str] = {}
+    kind = node.get("kind")
+
+    if kind == "gui":
+        app_id = node.get("app_id", "")
+        cmd = GUI_CMD.get(app_id)
+        if cmd is None:
+            log(f"restore: skipped GUI window {app_id!r} (not in GUI allowlist)")
+            return None
+        return cmd, env
+
+    # terminal kinds: always a foot in the saved cwd; the program runs from
+    # the interactive shell via SWAY_RESTORE_CMD so zshrc/history seeding apply.
+    cwd = node.get("cwd") or str(Path.home())
+    argv = ["foot", "-D", cwd]
+    if node.get("hist"):
+        env["SWAY_RESTORE_HIST"] = str(snapdir / node["hist"])
+
+    if kind == "claude":
+        sid = node.get("session_id")
+        # session ids are uuids (no shell metacharacters), safe to interpolate
+        env["SWAY_RESTORE_CMD"] = (
+            f"claude --resume {sid}" if sid else "claude --continue"
+        )
+    elif kind == "nvim":
+        if node.get("session"):
+            env["SWAY_RESTORE_CMD"] = f"nvim -S {snapdir / node['session']}"
+        elif node.get("files"):
+            files = " ".join(_shquote(f) for f in node["files"])
+            env["SWAY_RESTORE_CMD"] = f"nvim {files}"
+        else:
+            env["SWAY_RESTORE_CMD"] = "nvim"
+    elif kind == "run":
+        env["SWAY_RESTORE_CMD"] = " ".join(_shquote(a) for a in node.get("cmd", []))
+    elif kind == "echo":
+        # preload the command into the line editor for the user to inspect
+        env["SWAY_RESTORE_PRELOAD"] = " ".join(_shquote(a) for a in node.get("cmd", []))
+    # kind == "shell": bare interactive shell
+    return argv, env
+
+
+def _shquote(s: str) -> str:
+    if s and all(c.isalnum() or c in "-_./=:@%+" for c in s):
+        return s
+    return "'" + s.replace("'", "'\\''") + "'"
+
+
+class Restorer:
+    def __init__(self, ipc: Connection) -> None:
+        self.ipc = ipc
+        self.queue: asyncio.Queue[Con] = asyncio.Queue()
+        self.mark_n = 0
+
+    def on_new(self, ipc: Connection, event: Any) -> None:
+        self.queue.put_nowait(event.container)
+
+    async def launch(
+        self, node: Node, snapdir: Path, floating: bool = False
+    ) -> str | None:
+        """Launch one window, wait for it to appear, mark it. Returns mark|None."""
+        spec = build_launch(node, snapdir)
+        if spec is None:
+            return None
+        argv, extra = spec
+        env = dict(os.environ)
+        env.update(extra)
+        is_term = argv[0] in TERMINALS
+        try:
+            proc = subprocess.Popen(
+                argv,
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except OSError as e:
+            log(f"restore: launch failed {argv[0]}: {e}")
+            return None
+
+        match_pid = proc.pid if is_term else None
+        app = None if is_term else node.get("app_id")
+        con = await self._wait_window(match_pid, app)
+        if con is None:
+            log(f"restore: window for {argv[0]} never appeared")
+            return None
+        mark = f"_ses_{self.mark_n}"
+        self.mark_n += 1
+        await self.ipc.command(f"[con_id={con.id}] mark --add {mark}")
+        if floating:
+            await self.ipc.command(f"[con_mark={mark}] floating enable")
+        return mark
+
+    async def _wait_window(
+        self, match_pid: int | None, app_id: str | None, timeout: float = 10
+    ) -> Con | None:
+        deadline = asyncio.get_event_loop().time() + timeout
+        while True:
+            remaining = deadline - asyncio.get_event_loop().time()
+            if remaining <= 0:
+                return None
+            try:
+                con = await asyncio.wait_for(self.queue.get(), remaining)
+            except asyncio.TimeoutError:
+                return None
+            if match_pid is not None and con.pid == match_pid:
+                return con
+            if app_id is not None and app_id in (con.app_id, con.window_class):
+                return con
+            # unrelated window (e.g. GUI pid mismatch); accept if it's the only
+            # thing we're waiting on and nothing better arrives
+            if match_pid is None and app_id is None:
+                return con
+
+    async def build(self, node: Node, snapdir: Path, is_top: bool) -> str | None:
+        """Recursively launch+arrange a saved node tree under the current ws."""
+        children: list[Node] = node["children"]
+        marks: list[tuple[str | None, Node]] = []
+        for i, child in enumerate(children):
+            if child["type"] == "window":
+                m = await self.launch(child, snapdir)
+                marks.append((m, child))
+            else:
+                # nested container: first leaf attaches at this level, then we
+                # wrap it. Best-effort for deep trees.
+                m = await self._build_nested(child, snapdir, node["layout"])
+                marks.append((m, child))
+            if i == 0 and not is_top and len(children) > 1 and marks[0][0]:
+                d = "h" if node["layout"] in ("splith", "tabbed", "stacked") else "v"
+                await self.ipc.command(f"[con_mark={marks[0][0]}] focus")
+                await self.ipc.command(f"split {d}")
+
+        if not is_top and node["layout"] in ("tabbed", "stacked"):
+            anchor = next((m for m, _ in marks if m), None)
+            if anchor:
+                await self.ipc.command(f"[con_mark={anchor}] focus")
+                await self.ipc.command("focus parent")
+                await self.ipc.command(
+                    f"layout {'tabbed' if node['layout'] == 'tabbed' else 'stacking'}"
+                )
+
+        await self._apply_percents(marks, node["layout"])
+        return marks[0][0] if marks else None
+
+    async def _build_nested(
+        self, node: Node, snapdir: Path, parent_layout: str
+    ) -> str | None:
+        # create the nested container's first leaf at the current (parent) level
+        return await self.build(node, snapdir, is_top=False)
+
+    async def _apply_percents(
+        self, marks: list[tuple[str | None, Node]], layout: str
+    ) -> None:
+        if layout in ("tabbed", "stacked"):
+            return
+        dim = "width" if layout == "splith" else "height"
+        for mark, child in marks:
+            pct = child.get("percent")
+            if not mark or not pct:
+                continue
+            ppt = max(1, min(99, round(pct * 100)))
+            await self.ipc.command(f"[con_mark={mark}] focus")
+            await self.ipc.command(f"resize set {dim} {ppt} ppt")
+
+
+def _ws_has_windows(ipc_tree: Con, num: int | None, name: str) -> bool:
+    for ws in ipc_tree.workspaces():
+        if ws.name == name or (num is not None and ws.num == num):
+            return any(True for _ in ws.leaves())
+    return False
+
+
+async def restore(args: argparse.Namespace) -> int:
+    global LOG
+    LOG = ROOT / "restore.log"
+
+    sentinel = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "sway-session.restored"
+    explicit = args.state is not None
+    if not explicit and not args.force and sentinel.exists():
+        log("restore: sentinel present, already restored this login")
+        return 0
+
+    snapdir = resolve_snapshot(args.state)
+    if snapdir is None:
+        log(f"restore: no snapshot for selector {args.state!r}")
+        return 0
+    try:
+        state = json.loads((snapdir / "session.json").read_text())
+    except (OSError, json.JSONDecodeError) as e:
+        log(f"restore: cannot read snapshot: {e}")
+        return 0
+
+    if not ensure_swaysock():
+        log("restore: no sway socket found, skipping")
+        return 0
+    try:
+        ipc = await Connection().connect()
+    except Exception as e:  # noqa: BLE001 - best effort
+        log(f"restore: cannot connect to sway: {e}")
+        return 0
+
+    r = Restorer(ipc)
+    ipc.on(Event.WINDOW_NEW, r.on_new)
+
+    tree = await ipc.get_tree()
+    focused = state.get("focused")
+    # restore the originally-focused workspace last so we end up there
+    wslist: list[Node] = state["workspaces"]
+    wslist.sort(key=lambda w: w["name"] == focused)
+
+    for ws in wslist:
+        num, name = ws["num"], ws["name"]
+        if _ws_has_windows(tree, num, name):
+            alert(f"workspace {name!r} already populated, skipped")
+            continue
+        target = f"number {num}" if num is not None else f'"{name}"'
+        await ipc.command(f"workspace {target}")
+        if name and name != str(num):
+            await ipc.command(f'rename workspace to "{name}"')
+        if ws.get("output") and not args.no_output:
+            await ipc.command(f"move workspace to output {ws['output']}")
+
+        root = ws["root"]
+        await ipc.command(f"layout {_top_layout(root)}")
+        try:
+            await r.build(root, snapdir, is_top=True)
+        except Exception as e:  # noqa: BLE001 - best effort
+            alert(f"workspace {name!r} restore degraded: {e}")
+            log(f"restore: workspace {name} error: {e}")
+
+        # floating windows: launch, float, and restore geometry (best-effort)
+        for fn in ws.get("floating", []):
+            try:
+                mark = await r.launch(fn, snapdir, floating=True)
+            except Exception as e:  # noqa: BLE001 - best effort
+                log(f"restore: floating window error: {e}")
+                continue
+            geom = fn.get("geom")
+            if mark and geom:
+                await ipc.command(
+                    f"[con_mark={mark}] move absolute position {geom['x']} {geom['y']}"
+                )
+                await ipc.command(
+                    f"[con_mark={mark}] resize set width {geom['w']} px "
+                    f"height {geom['h']} px"
+                )
+
+    # Reproduce which workspace is shown on each monitor. Switching to a
+    # workspace only foregrounds it on its own output, so we can set every
+    # output's visible workspace independently; the focused one goes last so
+    # input focus ends there too.
+    shown = [w["name"] for w in wslist if w.get("visible")]
+    if focused and focused not in shown:
+        shown.append(focused)
+    shown.sort(key=lambda n: n == focused)
+    for name in shown:
+        await ipc.command(f'workspace "{name}"')
+
+    if not explicit:
+        with contextlib.suppress(OSError):
+            sentinel.touch()
+    log(f"restore: done from {snapdir.name}")
+    return 0
+
+
+def _top_layout(root: Node) -> str:
+    if root["type"] == "container" and root["layout"] in (
+        "splith",
+        "splitv",
+        "tabbed",
+        "stacking",
+    ):
+        lay = root["layout"]
+        return "stacking" if lay == "stacked" else lay
+    return "splith"
+
+
+# --- list --------------------------------------------------------------------
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    dirs = _snapshot_dirs()
+    latest = LATEST.resolve().name if LATEST.exists() else None
+    for i, d in enumerate(reversed(dirs), 1):
+        try:
+            state = json.loads((d / "session.json").read_text())
+            n: int | str = sum(
+                _count_windows(w["root"]) + len(w.get("floating", []))
+                for w in state["workspaces"]
+            )
+        except (OSError, json.JSONDecodeError):
+            n = "?"
+        tag = " (latest)" if d.name == latest else ""
+        print(f"{i:2}  {d.name}  {n} windows{tag}")
+    if not dirs:
+        print("no snapshots")
+    return 0
+
+
+def _count_windows(node: Node) -> int:
+    if node["type"] == "window":
+        return 1
+    return sum(_count_windows(c) for c in node["children"])
+
+
+# --- note-claude (SessionStart hook target) ----------------------------------
+
+
+def cmd_note_claude() -> int:
+    """Record the current claude session id, keyed on the owning claude pid.
+
+    Invoked from a claude SessionStart hook, which runs as a descendant of the
+    claude process and receives the session id both on stdin (hook JSON) and in
+    the environment. save() later reads this to resume the exact conversation.
+    """
+    sid: str | None = None
+    with contextlib.suppress(OSError, json.JSONDecodeError):
+        sid = json.loads(sys.stdin.read() or "{}").get("session_id")
+    if not sid:
+        sid = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if not sid:
+        return 0
+    pid = claude_ancestor(os.getpid())
+    if pid is None:
+        return 0
+    with contextlib.suppress(OSError):
+        CLAUDEMAP.mkdir(parents=True, exist_ok=True)
+        (CLAUDEMAP / str(pid)).write_text(sid)
+    return 0
+
+
+# --- cli ---------------------------------------------------------------------
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description="save/restore sway workspaces")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("save")
+
+    pr = sub.add_parser("restore")
+    pr.add_argument(
+        "state",
+        nargs="?",
+        default=None,
+        help="snapshot dir name, index (1=newest), or 'latest'",
+    )
+    pr.add_argument(
+        "--force", action="store_true", help="ignore the once-per-login sentinel"
+    )
+    pr.add_argument(
+        "--no-output",
+        action="store_true",
+        help="do not reassign workspaces to saved outputs",
+    )
+
+    sub.add_parser("list")
+    sub.add_parser("note-claude")
+
+    args = p.parse_args()
+    if args.cmd == "save":
+        sys.exit(asyncio.run(save(args)))
+    elif args.cmd == "restore":
+        sys.exit(asyncio.run(restore(args)))
+    elif args.cmd == "list":
+        sys.exit(cmd_list(args))
+    elif args.cmd == "note-claude":
+        sys.exit(cmd_note_claude())
+
+
+if __name__ == "__main__":
+    main()

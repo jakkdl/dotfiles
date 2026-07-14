@@ -1,0 +1,3 @@
+#!/bin/sh
+# Wrapper so systemd units / sway bindings read clearly. See sway-session.
+exec sway-session save "$@"

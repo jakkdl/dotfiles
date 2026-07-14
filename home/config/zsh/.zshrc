@@ -37,11 +37,42 @@ fi
 HISTFILE=$XDG_DATA_HOME/zsh/histfile
 HISTSIZE=100000
 SAVEHIST=50000
-setopt appendhistory
+setopt inc_append_history   # flush to $HISTFILE per command (crash-safe)
 setopt hist_ignore_dups
 
-setopt nosharehistory
+setopt nosharehistory       # each terminal keeps its own in-memory history
 setopt nohistverify
+
+# --- per-terminal history capture for sway-session save/restore --------------
+# Mirror this shell's own commands to a per-PID file so sway-session can snapshot
+# and reseed them. Written per command, so it also survives an unexpected exit.
+autoload -Uz add-zsh-hook
+SWAY_SESSION_HIST_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/sway-session/livehist"
+[[ -d $SWAY_SESSION_HIST_DIR ]] || mkdir -p $SWAY_SESSION_HIST_DIR
+_sway_session_hist="$SWAY_SESSION_HIST_DIR/$$.zsh"
+_sway_session_addhist() {
+  print -r -- "${1%$'\n'}" >> $_sway_session_hist
+  return 0
+}
+add-zsh-hook zshaddhistory _sway_session_addhist
+_sway_session_exit() { rm -f $_sway_session_hist; }
+add-zsh-hook zshexit _sway_session_exit
+
+# Restore hooks: a sway-session-launched terminal seeds history, then runs or
+# preloads the program it was restoring.
+if [[ -n $SWAY_RESTORE_HIST && -r $SWAY_RESTORE_HIST ]]; then
+  fc -R $SWAY_RESTORE_HIST
+fi
+if [[ -n $SWAY_RESTORE_CMD ]]; then
+  _sway_restore_cmd=$SWAY_RESTORE_CMD
+  unset SWAY_RESTORE_CMD SWAY_RESTORE_HIST
+  eval $_sway_restore_cmd
+  unset _sway_restore_cmd
+elif [[ -n $SWAY_RESTORE_PRELOAD ]]; then
+  print -z -- $SWAY_RESTORE_PRELOAD
+  unset SWAY_RESTORE_PRELOAD SWAY_RESTORE_HIST
+fi
+# -----------------------------------------------------------------------------
 
 
 
