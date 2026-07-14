@@ -1,13 +1,35 @@
+# systemd-networkd config for the built-in wired NIC. The [Network]/[DHCP*]
+# settings below apply to whichever interface the [Match] section selects.
+
 [Match]
-MACAddress=c8:7f:54:51:c0:47
-#Name=eno1
+# Match the physical wired NIC by NAME FAMILY, not a specific name or MAC, so this
+# one file is correct on every synced machine (dotfiles is shared across hosts that
+# differ by MAC/interface name). en* = predictable onboard/USB ethernet (enp1s0f0,
+# enp198s0f4u1u1, ...), eth* = legacy names. The globs deliberately exclude virtual
+# interfaces (docker0, veth*, br-*, tailscale0) so DHCP isn't run on them. This
+# matches ALL wired NICs on a box, which is fine for a laptop; if one machine needs
+# a specific port handled differently, add a lower-numbered file matching just it
+# (networkd applies the first-sorted matching .network per link).
+# (Do NOT pin MACAddress= here: MACs are per-machine, and a wrong one matches
+# nothing and silently kills wired DHCP.)
+Name=en* eth*
 
 [Network]
+# Pull address, gateway and routes from the LAN router via DHCP.
 DHCP=yes
-DNS=1.1.1.1
+# Resolve .local (mDNS) names over this link, so e.g. z1-okaul0.local works on the
+# LAN. "resolve" = we can look others up but do NOT advertise ourselves (less
+# exposure); "yes" would also broadcast this host. This is the line that fixes
+# ".local won't resolve" while on wired. (DNS over TLS lives in resolved, not here.)
+MulticastDNS=resolve
 
-[Link]
-NamePolicy=keep kernel database onboard slot path
-AlternativeNamesPolicy=database onboard slot path
-MACAddressPolicy=persistent
-WakeOnLan=magic
+[DHCPv4]
+# Ignore the DNS servers the DHCP lease offers (the ISP's Nuuday/Vultr resolvers).
+# All lookups go through resolved's Quad9-over-TLS config instead, so the
+# unencrypted ISP servers are never used or even listed on this link.
+UseDNS=no
+
+[IPv6AcceptRA]
+# Same intent for IPv6: ignore DNS servers advertised via Router Advertisements, so
+# IPv6 can't quietly reintroduce the ISP resolvers.
+UseDNS=no

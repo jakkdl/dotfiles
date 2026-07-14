@@ -1,12 +1,31 @@
 [Match]
-Name=wlp6s0
+# Match ANY wireless NIC by type, never by name. The wifi name is unpredictable
+# across machines AND on a single host: this machine's radio is "wlan0" even though
+# predictable naming is on and nothing renames it (the driver named it), while other
+# hosts may use wlp*/wlx*. Type=wlan sidesteps all of that. There are no virtual
+# wlan interfaces, so this is both safe and fully portable — the whole point of
+# keeping this file in synced dotfiles. (Do NOT pin a name or MAC here.)
+Type=wlan
 
 [Network]
+# Address/gateway/routes via DHCP from whatever AP we associate with.
 DHCP=yes
+# Don't tear the link (and its routes/leases) down on brief carrier loss; wifi
+# flaps constantly. Wait 3s before treating a drop as real.
 IgnoreCarrierLoss=3s
+# Resolve .local (mDNS) over wifi too, so z1-okaul0.local works off-cable.
+# resolve = look others up but don't advertise this host (less exposure).
+MulticastDNS=resolve
 
 [DHCPv4]
+# Ignore DNS servers the DHCP lease offers (ISP resolvers); all lookups go through
+# resolved's Quad9-over-TLS config instead. Mirrors the wired file's single-source DNS.
+UseDNS=no
+# Rank wifi routes below wired (kernel default is ~100, lower = preferred). When the
+# cable is also plugged in, traffic prefers the wire; wifi is the fallback.
 RouteMetric=600
 
 [IPv6AcceptRA]
+# Same intent for IPv6: ignore RA-advertised DNS, and deprioritize wifi vs wired.
+UseDNS=no
 RouteMetric=600
