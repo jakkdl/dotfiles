@@ -83,6 +83,10 @@ export SUDO_PROMPT=$'\a[sudo] password for %p: '
 export GPG_TTY=$(tty)
 export GNUPGHOME="$XDG_CONFIG_HOME/gnupg"
 
+# Claude Code has no XDG support; CLAUDE_CONFIG_DIR is its only relocation knob.
+# ~/.claude is also symlinked here for anything using the default path.
+export CLAUDE_CONFIG_DIR="$XDG_CONFIG_HOME/claude"
+
 # rootless docker
 #export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
 # We use podman instead
