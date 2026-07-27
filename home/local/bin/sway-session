@@ -112,9 +112,14 @@ def proc_cmdline(pid: int) -> list[str]:
 
 def proc_cwd(pid: int) -> str | None:
     try:
-        return os.readlink(f"/proc/{pid}/cwd")
+        cwd = os.readlink(f"/proc/{pid}/cwd")
     except OSError:
         return None
+    # readlink tags a deleted cwd with a literal " (deleted)" suffix; keep the
+    # real path so restore can fall back to the nearest existing ancestor
+    if cwd.endswith(" (deleted)") and not os.path.isdir(cwd):
+        cwd = cwd[: -len(" (deleted)")]
+    return cwd
 
 
 def proc_children(pid: int) -> list[int]:
@@ -483,6 +488,12 @@ def build_launch(node: Node, snapdir: Path) -> tuple[list[str], dict[str, str]] 
     # terminal kinds: always a foot in the saved cwd; the program runs from
     # the interactive shell via SWAY_RESTORE_CMD so zshrc/history seeding apply.
     cwd = node.get("cwd") or str(Path.home())
+    fallback = _existing_dir(cwd)
+    if fallback != cwd:
+        alert(f"cwd {cwd} is gone, restoring in {fallback}")
+        # surfaced in the restored terminal itself by the zshrc restore hook
+        env["SWAY_RESTORE_MSG"] = f"cwd {cwd} is gone, started in {fallback}"
+        cwd = fallback
     argv = ["foot", "-D", cwd]
     if node.get("hist"):
         env["SWAY_RESTORE_HIST"] = str(snapdir / node["hist"])
@@ -510,6 +521,39 @@ def build_launch(node: Node, snapdir: Path) -> tuple[list[str], dict[str, str]] 
     return argv, env
 
 
+def _existing_dir(path: str) -> str:
+    """Nearest existing ancestor of path (the saved cwd may have been deleted;
+    foot -D refuses to start on a missing directory and the window is lost)."""
+    p = Path(path)
+    while not p.is_dir() and p != p.parent:
+        p = p.parent
+    return str(p)
+
+
+async def _run_cmd(ipc: Connection, cmd: str) -> bool:
+    """Issue one IPC command; log it and any failure. True when all succeeded.
+
+    Every restore-side sway command goes through here: the log gives ground
+    truth for layout bugs, and callers must gate follow-up commands on the
+    result — an unchecked failed `[criteria] focus` would silently retarget
+    the next split/resize/layout at whatever window the user has focused.
+    """
+    try:
+        replies = await ipc.command(cmd)
+    except Exception as e:  # noqa: BLE001 - best effort
+        log(f"cmd error: {cmd!r}: {e}")
+        return False
+    ok = all(r.success for r in replies)
+    if ok:
+        log(f"cmd: {cmd}")
+    else:
+        errs = "; ".join(
+            getattr(r, "error", None) or "?" for r in replies if not r.success
+        )
+        log(f"cmd FAILED: {cmd!r}: {errs}")
+    return ok
+
+
 def _shquote(s: str) -> str:
     if s and all(c.isalnum() or c in "-_./=:@%+" for c in s):
         return s
@@ -521,6 +565,13 @@ class Restorer:
         self.ipc = ipc
         self.queue: asyncio.Queue[Con] = asyncio.Queue()
         self.mark_n = 0
+        self.failed: list[str] = []  # human-readable descriptions, for the alert
+
+    @staticmethod
+    def _describe(node: Node) -> str:
+        kind = node.get("kind", "?")
+        where = node.get("cwd") or node.get("app_id") or ""
+        return f"{kind} {where}".strip()
 
     def on_new(self, ipc: Connection, event: Any) -> None:
         self.queue.put_nowait(event.container)
@@ -546,19 +597,25 @@ class Restorer:
             )
         except OSError as e:
             log(f"restore: launch failed {argv[0]}: {e}")
+            self.failed.append(self._describe(node))
             return None
 
         match_pid = proc.pid if is_term else None
         app = None if is_term else node.get("app_id")
         con = await self._wait_window(match_pid, app)
         if con is None:
-            log(f"restore: window for {argv[0]} never appeared")
+            log(
+                f"restore: window for {argv[0]} ({self._describe(node)}) never appeared"
+            )
+            self.failed.append(self._describe(node))
             return None
         mark = f"_ses_{self.mark_n}"
         self.mark_n += 1
-        await self.ipc.command(f"[con_id={con.id}] mark --add {mark}")
+        if not await _run_cmd(self.ipc, f"[con_id={con.id}] mark --add {mark}"):
+            self.failed.append(self._describe(node))
+            return None
         if floating:
-            await self.ipc.command(f"[con_mark={mark}] floating enable")
+            await _run_cmd(self.ipc, f"[con_mark={mark}] floating enable")
         return mark
 
     async def _wait_window(
@@ -597,16 +654,19 @@ class Restorer:
                 marks.append((m, child))
             if i == 0 and not is_top and len(children) > 1 and marks[0][0]:
                 d = "h" if node["layout"] in ("splith", "tabbed", "stacked") else "v"
-                await self.ipc.command(f"[con_mark={marks[0][0]}] focus")
-                await self.ipc.command(f"split {d}")
+                if await _run_cmd(self.ipc, f"[con_mark={marks[0][0]}] focus"):
+                    await _run_cmd(self.ipc, f"split {d}")
 
         if not is_top and node["layout"] in ("tabbed", "stacked"):
             anchor = next((m for m, _ in marks if m), None)
-            if anchor:
-                await self.ipc.command(f"[con_mark={anchor}] focus")
-                await self.ipc.command("focus parent")
-                await self.ipc.command(
-                    f"layout {'tabbed' if node['layout'] == 'tabbed' else 'stacking'}"
+            if (
+                anchor
+                and await _run_cmd(self.ipc, f"[con_mark={anchor}] focus")
+                and await _run_cmd(self.ipc, "focus parent")
+            ):
+                await _run_cmd(
+                    self.ipc,
+                    f"layout {'tabbed' if node['layout'] == 'tabbed' else 'stacking'}",
                 )
 
         await self._apply_percents(marks, node["layout"])
@@ -629,8 +689,8 @@ class Restorer:
             if not mark or not pct:
                 continue
             ppt = max(1, min(99, round(pct * 100)))
-            await self.ipc.command(f"[con_mark={mark}] focus")
-            await self.ipc.command(f"resize set {dim} {ppt} ppt")
+            if await _run_cmd(self.ipc, f"[con_mark={mark}] focus"):
+                await _run_cmd(self.ipc, f"resize set {dim} {ppt} ppt")
 
 
 def _ws_has_windows(ipc_tree: Con, num: int | None, name: str) -> bool:
@@ -684,14 +744,17 @@ async def restore(args: argparse.Namespace) -> int:
             alert(f"workspace {name!r} already populated, skipped")
             continue
         target = f"number {num}" if num is not None else f'"{name}"'
-        await ipc.command(f"workspace {target}")
+        if not await _run_cmd(ipc, f"workspace {target}"):
+            # never build windows into whatever workspace happens to be focused
+            alert(f"workspace {name!r}: switch failed, skipped")
+            continue
         if name and name != str(num):
-            await ipc.command(f'rename workspace to "{name}"')
+            await _run_cmd(ipc, f'rename workspace to "{name}"')
         if ws.get("output") and not args.no_output:
-            await ipc.command(f"move workspace to output {ws['output']}")
+            await _run_cmd(ipc, f"move workspace to output {ws['output']}")
 
         root = ws["root"]
-        await ipc.command(f"layout {_top_layout(root)}")
+        await _run_cmd(ipc, f"layout {_top_layout(root)}")
         try:
             await r.build(root, snapdir, is_top=True)
         except Exception as e:  # noqa: BLE001 - best effort
@@ -707,12 +770,14 @@ async def restore(args: argparse.Namespace) -> int:
                 continue
             geom = fn.get("geom")
             if mark and geom:
-                await ipc.command(
-                    f"[con_mark={mark}] move absolute position {geom['x']} {geom['y']}"
+                await _run_cmd(
+                    ipc,
+                    f"[con_mark={mark}] move absolute position {geom['x']} {geom['y']}",
                 )
-                await ipc.command(
+                await _run_cmd(
+                    ipc,
                     f"[con_mark={mark}] resize set width {geom['w']} px "
-                    f"height {geom['h']} px"
+                    f"height {geom['h']} px",
                 )
 
     # Reproduce which workspace is shown on each monitor. Switching to a
@@ -724,13 +789,47 @@ async def restore(args: argparse.Namespace) -> int:
         shown.append(focused)
     shown.sort(key=lambda n: n == focused)
     for name in shown:
-        await ipc.command(f'workspace "{name}"')
+        await _run_cmd(ipc, f'workspace "{name}"')
+
+    await _unpark_empty_outputs(ipc, focused)
+
+    if r.failed:
+        alert(
+            f"{len(r.failed)} window(s) failed to restore: "
+            + "; ".join(r.failed[:4])
+            + ("; …" if len(r.failed) > 4 else "")
+        )
 
     if not explicit:
         with contextlib.suppress(OSError):
             sentinel.touch()
     log(f"restore: done from {snapdir.name}")
     return 0
+
+
+async def _unpark_empty_outputs(ipc: Connection, focused: str | None) -> None:
+    """Don't leave a monitor showing an empty workspace when it has populated
+    ones (e.g. a single-monitor snapshot restored onto a multi-monitor boot
+    leaves the extra outputs on whatever empty default workspace sway made)."""
+    tree = await ipc.get_tree()
+    counts = {ws.name: sum(1 for _ in ws.leaves()) for ws in tree.workspaces()}
+    by_output: dict[str, list[Any]] = {}
+    for w in await ipc.get_workspaces():
+        by_output.setdefault(w.ipc_data.get("output", ""), []).append(w)
+    for wss in by_output.values():
+        vis = next((w for w in wss if w.visible), None)
+        if vis is None or counts.get(vis.name):
+            continue
+        cand = min(
+            (w for w in wss if counts.get(w.name)),
+            key=lambda w: (w.num is None or w.num < 0, w.num),
+            default=None,
+        )
+        if cand is not None:
+            await _run_cmd(ipc, f'workspace "{cand.name}"')
+    # the passes above move input focus; put it back where the snapshot had it
+    if focused and counts.get(focused):
+        await _run_cmd(ipc, f'workspace "{focused}"')
 
 
 def _top_layout(root: Node) -> str:

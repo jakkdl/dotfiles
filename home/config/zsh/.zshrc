@@ -59,18 +59,42 @@ _sway_session_exit() { rm -f $_sway_session_hist; }
 add-zsh-hook zshexit _sway_session_exit
 
 # Restore hooks: a sway-session-launched terminal seeds history, then runs or
-# preloads the program it was restoring.
-if [[ -n $SWAY_RESTORE_HIST && -r $SWAY_RESTORE_HIST ]]; then
-  fc -R $SWAY_RESTORE_HIST
-fi
-if [[ -n $SWAY_RESTORE_CMD ]]; then
-  _sway_restore_cmd=$SWAY_RESTORE_CMD
-  unset SWAY_RESTORE_CMD SWAY_RESTORE_HIST
-  eval $_sway_restore_cmd
-  unset _sway_restore_cmd
-elif [[ -n $SWAY_RESTORE_PRELOAD ]]; then
-  print -z -- $SWAY_RESTORE_PRELOAD
-  unset SWAY_RESTORE_PRELOAD SWAY_RESTORE_HIST
+# preloads the program it was restoring. Deferred to a one-shot precmd because
+# zsh reads $HISTFILE only after zshrc finishes: seeding here would bury the
+# per-terminal entries under the whole global history.
+if [[ -n $SWAY_RESTORE_HIST || -n $SWAY_RESTORE_CMD || -n $SWAY_RESTORE_PRELOAD ||
+      -n $SWAY_RESTORE_MSG ]]; then
+  _sway_session_restore() {
+    add-zsh-hook -d precmd _sway_session_restore
+    unfunction _sway_session_restore
+    if [[ -n $SWAY_RESTORE_MSG ]]; then
+      # e.g. "cwd ... is gone, started in ..." — the shell is somewhere the
+      # user does not expect, so say it in the terminal itself
+      print -u2 -- "\e[33msway-session: $SWAY_RESTORE_MSG\e[0m"
+      unset SWAY_RESTORE_MSG
+    fi
+    if [[ -n $SWAY_RESTORE_HIST && -r $SWAY_RESTORE_HIST ]]; then
+      fc -R $SWAY_RESTORE_HIST
+      # also into this shell's livehist mirror, so the history survives
+      # another save/restore cycle even if nothing is typed here
+      cat $SWAY_RESTORE_HIST >> $_sway_session_hist
+    fi
+    if [[ -n $SWAY_RESTORE_CMD ]]; then
+      local cmd=$SWAY_RESTORE_CMD
+      unset SWAY_RESTORE_CMD SWAY_RESTORE_HIST
+      # into history (and the livehist mirror) before running, so a failed
+      # resume (e.g. no network yet) is one Up-arrow away instead of lost
+      print -s -- $cmd
+      print -r -- $cmd >> $_sway_session_hist
+      eval $cmd
+    elif [[ -n $SWAY_RESTORE_PRELOAD ]]; then
+      print -z -- $SWAY_RESTORE_PRELOAD
+      unset SWAY_RESTORE_PRELOAD SWAY_RESTORE_HIST
+    else
+      unset SWAY_RESTORE_HIST
+    fi
+  }
+  add-zsh-hook precmd _sway_session_restore
 fi
 # -----------------------------------------------------------------------------
 
