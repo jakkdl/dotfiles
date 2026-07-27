@@ -22,7 +22,7 @@ export EDITOR="$VISUAL"
 #export PS1='\[\033[0;32m\][\[\033[0m\033[0;36m\]\u\[\033[0;32m\]@\[\033[0m\033[0;36m\]\h\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\t\[\033[0;32m\]]=[\[\033[0m\033[0;36m\]\w\[\033[0;32m\]]\n\[\033[0;32m\]=[\[\033[0m\033[0;36m\]\$\[\033[0;32m\]]>\[\033[0m\] '
 export IGNOREEOF=0
 
-LANG="en_US.UTF-8"
+# LANG comes from /etc/locale.conf (en_DK.UTF-8)
 
 alias l='ls -Fh --color'
 alias ll='ls -lh --color'

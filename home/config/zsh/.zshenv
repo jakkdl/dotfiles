@@ -46,8 +46,7 @@ export HISTFILE="$XDG_STATE_HOME"/zsh/history
 #fi
 #compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION
 
-# You may need to manually set your language environment
-export LANG=en_US.UTF-8
+# LANG comes from /etc/locale.conf (en_DK.UTF-8)
 
 # Preferred editor for local and remote sessions
 if [[ -n $SSH_CONNECTION ]]; then
