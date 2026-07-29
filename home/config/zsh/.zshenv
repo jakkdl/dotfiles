@@ -86,6 +86,9 @@ export GNUPGHOME="$XDG_CONFIG_HOME/gnupg"
 # ~/.claude is also symlinked here for anything using the default path.
 export CLAUDE_CONFIG_DIR="$XDG_CONFIG_HOME/claude"
 
+# Session-only model override (unlike `/model`, doesn't persist as the settings.json default)
+export ANTHROPIC_MODEL=opus
+
 # rootless docker
 #export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
 # We use podman instead
