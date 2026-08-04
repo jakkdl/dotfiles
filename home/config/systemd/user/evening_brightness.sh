@@ -28,6 +28,15 @@ DISPLAY_TWO="BenQG2222HDL"
 #    Feature: 08 (Restore color defaults)
 #    Feature: 14 (Select color preset)
 
+# An OnCalendar trigger that elapsed during suspend fires as soon as we wake,
+# which is before the DP links are back and DDC/CI is reachable.
+for _ in $(seq 20); do
+    if ddcutil --brief detect 2>/dev/null | grep -q '^Display'; then
+        break
+    fi
+    sleep 2
+done
+
 # if before 07:00 or after 21:59
 if (( H < 7 || H >= 22 )); then
     # color preset (feature 14) 5000 k
