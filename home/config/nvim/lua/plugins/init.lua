@@ -7,7 +7,7 @@ return {
         "lifepillar/vim-mucomplete",
 	"cespare/vim-toml",
 	"jasonccox/vim-wayland-clipboard",
-
+        "ThePrimeagen/vim-be-good",
 	--"vim-airline/vim-airline",
 	--'github/copilot-vim',
 }
