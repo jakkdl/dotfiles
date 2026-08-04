@@ -67,6 +67,18 @@ if [[ -n $SWAY_RESTORE_HIST || -n $SWAY_RESTORE_CMD || -n $SWAY_RESTORE_PRELOAD 
   _sway_session_restore() {
     add-zsh-hook -d precmd _sway_session_restore
     unfunction _sway_session_restore
+    # the payload is single-use, gated on consuming a claim file: a terminal
+    # cloned from a restored one (foot ctrl+shift+n) inherits SWAY_RESTORE_*
+    # from the foot process and must not rerun any of it
+    if [[ -n $SWAY_RESTORE_ONCE ]]; then
+      local _sway_once=$SWAY_RESTORE_ONCE
+      unset SWAY_RESTORE_ONCE
+      if [[ ! -e $_sway_once ]]; then
+        unset SWAY_RESTORE_CMD SWAY_RESTORE_HIST SWAY_RESTORE_PRELOAD SWAY_RESTORE_MSG
+        return 0
+      fi
+      rm -f $_sway_once
+    fi
     if [[ -n $SWAY_RESTORE_MSG ]]; then
       # e.g. "cwd ... is gone, started in ..." — the shell is somewhere the
       # user does not expect, so say it in the terminal itself

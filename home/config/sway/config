@@ -193,6 +193,9 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
 
     bindsym $mod+r exec "rename_workspace.py"
 
+    # new PR: prompt for a name, open a fresh workspace with newpr + claude
+    bindsym $mod+n exec "newpr_workspace.py"
+
     # volume
     # button4 = scroll up, button5 = scroll down
     bindsym --whole-window $mod+button4 exec "pactl set-sink-volume @DEFAULT_SINK@ +3%"
