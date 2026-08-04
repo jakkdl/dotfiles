@@ -136,7 +136,7 @@
         "format-source": "{volume}% ",
         "format-source-muted": "",
         "format-icons": {
-            "headphone": "",
+            "speaker": "",
             "hands-free": "",
             "headset": "",
             "phone": "",
