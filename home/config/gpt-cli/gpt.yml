@@ -2,7 +2,7 @@ anthropic_api_key: !include "/home/h/.config/gpt-cli/anthropic_api_key.txt"
 default_assistant: my_claude
 assistants:
   my_claude:
-    model: claude-sonnet-4-5
+    model: claude-opus-5
     messages:
       - {
         role: system,

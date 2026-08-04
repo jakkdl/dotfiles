@@ -24,7 +24,7 @@ alias connect_bose='bluetoothctl connect AC:BF:71:69:CF:20'
 alias sway='sway | ts &> ~/.local/state/sway.log'
 
 # install using `pipx install gpt-command-line`
-alias cclaude='gpt --model claude-4-6-sonnet-latest'
+alias cclaude='gpt --model claude-opus-5'
 
 # sudo pacman -S python-virtualenv python-uv
 gitrootdir() {
