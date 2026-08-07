@@ -299,3 +299,6 @@ cst() {
     check_args 1 $# || return 1
     cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch
 }
+
+# machine-local aliases/functions not tracked in the dotfiles repo
+[[ -f ~/.config/zsh/aliases.local.zsh ]] && source ~/.config/zsh/aliases.local.zsh
