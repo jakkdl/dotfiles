@@ -1,0 +1,39 @@
+#!/bin/bash
+# Save the sway session on poweroff/reboot, the shutdown analogue of the
+# swayidle before-sleep hook: hold a logind shutdown delay-inhibitor for the
+# session's lifetime and save when PrepareForShutdown fires. logind waits for
+# the release (bounded by InhibitDelayMaxSec) before tearing sessions down,
+# so sway is still fully queryable during the save.
+if [ "$1" != --inhibited ]; then
+    exec systemd-inhibit --what=shutdown --who=sway-session \
+        --why="saving sway session" --mode=delay "$0" --inhibited
+fi
+
+# gdbus subscribes as a regular bus client: dbus-broker (the system bus here)
+# does not support the eavesdropping that dbus-monitor falls back to for
+# unprivileged users, and silently delivers it nothing
+stdbuf -oL gdbus monitor --system --dest org.freedesktop.login1 \
+    --object-path /org/freedesktop/login1 2>/dev/null \
+    | grep -m1 -q "PrepareForShutdown (true" &
+shutdown_waiter=$!
+
+# blocks until this watcher's own sway (via the inherited $SWAYSOCK) goes
+# away, so each session cleans up its own watcher and multiple concurrent
+# sway sessions don't interfere
+swaymsg -t subscribe '["shutdown"]' >/dev/null 2>&1 &
+sway_waiter=$!
+
+wait -n "$shutdown_waiter" "$sway_waiter"
+
+# save only if the grep finished AND matched (exit 0, harvested via wait):
+# the monitor dying without a signal makes grep finish with EOF/exit 1,
+# which must not count as a shutdown
+if ! kill -0 "$shutdown_waiter" 2>/dev/null && wait "$shutdown_waiter"; then
+    sway-session-save shutdown
+fi
+
+# unwind: kill both waiters and this instance's gdbus (a direct child; grep
+# alone dying would leave the monitor lingering until its next write)
+kill "$shutdown_waiter" "$sway_waiter" 2>/dev/null
+pkill -x -P $$ gdbus 2>/dev/null
+exit 0

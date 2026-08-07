@@ -384,6 +384,7 @@ async def save(args: argparse.Namespace) -> int:
     state = {
         "version": 1,
         "saved": time.time(),
+        "cause": args.cause,
         "focused": focused,
         "workspaces": workspaces,
     }
@@ -394,7 +395,7 @@ async def save(args: argparse.Namespace) -> int:
     _prune()
     _sweep_livehist()
     _sweep_claude()
-    log(f"save: wrote {snapdir.name} ({counter[0]} windows)")
+    log(f"save: wrote {snapdir.name} ({counter[0]} windows, cause={args.cause})")
     return 0
 
 
@@ -851,16 +852,18 @@ def cmd_list(args: argparse.Namespace) -> int:
     dirs = _snapshot_dirs()
     latest = LATEST.resolve().name if LATEST.exists() else None
     for i, d in enumerate(reversed(dirs), 1):
+        cause = "?"
         try:
             state = json.loads((d / "session.json").read_text())
             n: int | str = sum(
                 _count_windows(w["root"]) + len(w.get("floating", []))
                 for w in state["workspaces"]
             )
+            cause = state.get("cause", "?")
         except (OSError, json.JSONDecodeError):
             n = "?"
         tag = " (latest)" if d.name == latest else ""
-        print(f"{i:2}  {d.name}  {n} windows{tag}")
+        print(f"{i:2}  {d.name}  {n:>2} windows  {cause}{tag}")
     if not dirs:
         print("no snapshots")
     return 0
@@ -905,7 +908,14 @@ def main() -> None:
     p = argparse.ArgumentParser(description="save/restore sway workspaces")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("save")
+    ps = sub.add_parser("save")
+    ps.add_argument(
+        "cause",
+        nargs="?",
+        default="manual",
+        help="what triggered the save (sleep, shutdown, exit); recorded and "
+        "shown by list",
+    )
 
     pr = sub.add_parser("restore")
     pr.add_argument(

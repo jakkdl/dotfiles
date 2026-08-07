@@ -37,6 +37,9 @@ exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DE
 # Restore the previous session (runs once per login; exec, not exec_always, so
 # it does not re-run on config reload). See ~/.local/bin/sway-session.
 exec sway-session-restore
+# save on poweroff/reboot via a logind delay-inhibitor; watches its own
+# $SWAYSOCK and exits with this sway instance
+exec sway-session-shutdown-watch
 
 ### Output configuration
 #
@@ -106,7 +109,7 @@ exec swayidle -w \
          timeout 600 $waylock \
          timeout 1200 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"' \
          timeout 1500 'systemctl suspend' \
-         before-sleep "sway-session-save; $waylock"
+         before-sleep "sway-session-save sleep; $waylock"
 #
 # This will lock your screen after 300 seconds of inactivity, then turn off
 # your displays after another 300 seconds, and turn your screens back on when
@@ -189,7 +192,7 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     #bindsym $mod+Ctrl+Shift+q exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
     # Save the session first (best-effort; ';' inside the quotes so exit still
     # happens even if the save fails).
-    bindsym $mod+Ctrl+Shift+q exec "sway-session-save; swaymsg exit"
+    bindsym $mod+Ctrl+Shift+q exec "sway-session-save exit; swaymsg exit"
 
     bindsym $mod+r exec "rename_workspace.py"
 
