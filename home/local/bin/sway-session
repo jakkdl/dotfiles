@@ -25,6 +25,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from collections.abc import Iterator
 from pathlib import Path
@@ -519,7 +520,23 @@ def build_launch(node: Node, snapdir: Path) -> tuple[list[str], dict[str, str]] 
         # preload the command into the line editor for the user to inspect
         env["SWAY_RESTORE_PRELOAD"] = " ".join(_shquote(a) for a in node.get("cmd", []))
     # kind == "shell": bare interactive shell
+    if env:
+        env["SWAY_RESTORE_ONCE"] = _once_token()
     return argv, env
+
+
+def _once_token() -> str:
+    """Single-use claim file gating the SWAY_RESTORE_* payload.
+
+    The zshrc hook only acts if it can consume (delete) this file. Foot's
+    ctrl+shift+n clones inherit the terminal's environment, and without the
+    token they would rerun the restored command in every cloned shell.
+    """
+    tokdir = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "sway-restore-once"
+    tokdir.mkdir(parents=True, exist_ok=True)
+    fd, path = tempfile.mkstemp(dir=tokdir)
+    os.close(fd)
+    return path
 
 
 def _existing_dir(path: str) -> str:
