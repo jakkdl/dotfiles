@@ -215,6 +215,7 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym $mod+Shift+y exec "sus"
 
     # Screenshot, requires grimshot from AUR
+    # grimshot does not exist in the AUR (anymore?) extra/sway-contrib
     # save location is set in ~/.config/user_dirs.dirs, requires xdg-user-dirs
     bindsym $mod+d exec "grimshot save area"
     bindsym $mod+Shift+d exec "grimshot save output"

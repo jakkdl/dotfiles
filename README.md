@@ -72,6 +72,7 @@ $ sudo pacman -S swaync  # notifications
 $ sudo pacman -S pacman-contrib  # paccache, pacman hook
 $ sudo pacman -S acpi # suspend-low-bat hook
 $ sudo pacman -S tree-sitter-cli # neovim plugin dep
+$ sudo pacman -S sway-contrib # grimshot
 ```
 
 ## earlyoom
