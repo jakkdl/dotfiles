@@ -177,7 +177,21 @@ gitpruneremote() {
             awk -v b="refs/heads/$branch" '
                 /^worktree / {wt=$2}
                 $0=="branch "b {print wt}' |
-            xargs -r git worktree remove
+            while IFS= read -r wt; do
+                busy=""
+                for cwd in /proc/[0-9]*/cwd; do
+                    target=$(readlink "$cwd" 2>/dev/null) || continue
+                    if [[ "$target" == "$wt" || "$target" == "$wt"/* ]]; then
+                        busy=1
+                        break
+                    fi
+                done
+                if [[ -n "$busy" ]]; then
+                    echo "gitpruneremote: skipping removal, $wt is still open in a terminal" >&2
+                else
+                    git worktree remove "$wt"
+                fi
+            done
     done
 
     git branch -v |
