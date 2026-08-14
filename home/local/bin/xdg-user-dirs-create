@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Create every directory listed in user-dirs.dirs that doesn't exist yet.
+#
+# Usage: xdg-user-dirs-create [-v]
+#          -v  also list directories that already existed
+#
+# Nothing creates these on demand: xdg-user-dirs-update only writes the config,
+# and consumers (grimshot, browsers, file pickers) fail outright on a missing
+# path. xdg-user-dirs-update additionally resets entries whose path is gone, so
+# this runs at session start (see the sway config) before anything reads them.
+set -u
+
+verbose=false
+if [ "${1:-}" = "-v" ]; then
+    verbose=true
+fi
+
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
+if [ ! -r "$conf" ]; then
+    echo "$conf: not readable" >&2
+    exit 1
+fi
+
+failed=()
+while IFS= read -r line; do
+    # the documented format is XDG_xxx_DIR="$HOME/yyy" or XDG_xxx_DIR="/yyy";
+    # anything else (comments, other assignments) is skipped
+    [[ $line =~ ^[[:space:]]*(XDG_[A-Z0-9_]+_DIR)=\"(.*)\"[[:space:]]*$ ]] || continue
+    name=${BASH_REMATCH[1]}
+    dir=${BASH_REMATCH[2]}
+    # the literal $HOME prefix is the file's own syntax, not an expansion here
+    # shellcheck disable=SC2016
+    case $dir in
+        '$HOME') dir=$HOME ;;
+        '$HOME'/*) dir=$HOME${dir#\$HOME} ;;
+        /*) ;;
+        *)
+            echo "$name: unsupported path ${dir@Q}, skipped" >&2
+            continue
+            ;;
+    esac
+    # $HOME itself is the "disabled" value for a dir, and never needs creating
+    if [ "$dir" = "$HOME" ]; then
+        continue
+    fi
+    if [ -d "$dir" ]; then
+        if $verbose; then
+            echo "$name: $dir (exists)"
+        fi
+    elif mkdir -p -- "$dir"; then
+        echo "$name: $dir (created)"
+    else
+        failed+=("$name")
+    fi
+done < "$conf"
+
+if [ ${#failed[@]} -gt 0 ]; then
+    # session-start runs have no terminal attached, so surface this on the desktop
+    if command -v alert >/dev/null; then
+        alert "xdg-user-dirs-create" "could not create: ${failed[*]}"
+    fi
+    exit 1
+fi

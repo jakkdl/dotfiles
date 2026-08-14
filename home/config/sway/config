@@ -34,6 +34,11 @@ set $toggl_menu wofi --show=dmenu --cache-file=$XDG_CACHE_HOME/wofi-toggl-projec
 # Configure screen capture for OBS
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 
+# Make sure the XDG user dirs exist; apps that write into them (grimshot,
+# browser downloads, file pickers) fail on a missing path. exec_always since
+# it is idempotent, so a config reload is enough to pick up new entries.
+exec_always xdg-user-dirs-create
+
 # Restore the previous session (runs once per login; exec, not exec_always, so
 # it does not re-run on config reload). See ~/.local/bin/sway-session.
 exec sway-session-restore
