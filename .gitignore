@@ -1,4 +1,5 @@
 .mypy_cache
+__pycache__/
 fix_links.sh
 
 # never track machine/work-specific ssh hosts
