@@ -64,7 +64,13 @@ ALLOWLIST = {"less", "man", "btop", "htop", "top", "git", "watch", "tig", "lazyg
 # which classify_window already falls back to.)
 GUI_CMD: dict[str, list[str]] = {
     "firefox": ["firefox"],
+    "teams-for-linux": ["teams-for-linux"],
 }
+# app_ids that are knowingly not worth restoring. Listing one here has no effect
+# on restore (anything outside GUI_CMD is skipped either way); it only tells save
+# that the window is unrestorable on purpose, silencing the alert it would
+# otherwise raise so real omissions stay visible.
+IGNORE_GUI: set[str] = set()
 
 LOG = ROOT / "save.log"  # repointed per subcommand
 
@@ -391,6 +397,13 @@ async def save(args: argparse.Namespace) -> int:
     }
     (snapdir / "session.json").write_text(json.dumps(state, indent=2))
 
+    unknown = _unclassified_gui(workspaces)
+    if unknown:
+        alert(
+            "window(s) won't be restored, add to GUI_CMD or IGNORE_GUI: "
+            + "; ".join(f"{a} ({t})" if t else a for a, t in sorted(unknown.items()))
+        )
+
     # repoint latest, prune old, sweep dead livehist files
     _repoint_latest(snapdir)
     _prune()
@@ -404,6 +417,35 @@ def _has_window(node: Node) -> bool:
     if node["type"] == "window":
         return True
     return any(_has_window(c) for c in node["children"])
+
+
+def _iter_saved_windows(node: Node) -> Iterator[Node]:
+    """Yield the window nodes of a saved container tree."""
+    if node["type"] == "window":
+        yield node
+        return
+    for c in node["children"]:
+        yield from _iter_saved_windows(c)
+
+
+def _unclassified_gui(workspaces: list[Node]) -> dict[str, str]:
+    """GUI app_ids in neither allowlist, mapped to one example window title.
+
+    These are the windows that would silently vanish across a save/restore
+    cycle, so save() reports them: the fix is either a GUI_CMD entry to relaunch
+    them or an IGNORE_GUI entry to accept the loss.
+    """
+    out: dict[str, str] = {}
+    for ws in workspaces:
+        floating: list[Node] = ws["floating"]
+        for node in [*_iter_saved_windows(ws["root"]), *floating]:
+            if node.get("kind") != "gui":
+                continue
+            app_id = node.get("app_id") or "unknown"
+            if app_id in GUI_CMD or app_id in IGNORE_GUI:
+                continue
+            out.setdefault(app_id, (node.get("title") or "")[:40])
+    return out
 
 
 def _repoint_latest(snapdir: Path) -> None:
