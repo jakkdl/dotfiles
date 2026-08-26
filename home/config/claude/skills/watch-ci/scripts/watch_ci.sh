@@ -28,20 +28,36 @@ die() { echo "watch_ci: $*"; exit 1; }
 command -v gh >/dev/null 2>&1 || die "gh not found"
 command -v jq >/dev/null 2>&1 || die "jq not found"
 
+# gh states its reason on stderr and nowhere else: an expired token, a 502, a
+# rate limit and a genuine 404 all exit non-zero with empty stdout and differ
+# only in that message. Keep it, so a watcher that gives up says which of those
+# happened rather than asserting the one cause the caller can act on.
+GH_ERR_FILE="$(mktemp)"
+trap 'rm -f "$GH_ERR_FILE"' EXIT
+
+gh_run() { gh "$@" 2>"$GH_ERR_FILE"; }
+
+gh_err() { # the last gh_run failure's stderr, flattened onto one line
+    local err
+    err="$(tr -s '[:space:]' ' ' <"$GH_ERR_FILE")"
+    err="${err# }"
+    echo "${err% }"
+}
+
 PR="${1:-}"
 if [[ -z "$PR" ]]; then
-    PR="$(gh pr view --json number --jq .number 2>/dev/null || true)"
-    [[ -n "$PR" ]] || die "no PR number given and none open for the current branch"
+    PR="$(gh_run pr view --json number --jq .number)" \
+        || die "no PR number given, and resolving one for the current branch failed: $(gh_err)"
 fi
 
 # gh resolves the repo from the working directory, so a watcher started from the
 # wrong checkout silently watches a PR of that number in some other repo - or
 # waits forever for one that does not exist there. Pin it once, up front, and
 # fail immediately if the PR is not in it.
-REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || true)"
-[[ -n "$REPO" ]] || die "not inside a GitHub repo; cd to the repo the PR belongs to"
-gh pr view "$PR" --repo "$REPO" --json number >/dev/null 2>&1 \
-    || die "no PR #$PR in $REPO; cd to the repo the PR belongs to"
+REPO="$(gh_run repo view --json nameWithOwner --jq .nameWithOwner)" \
+    || die "could not resolve a GitHub repo here: $(gh_err)"
+gh_run pr view "$PR" --repo "$REPO" --json number >/dev/null \
+    || die "cannot read PR #$PR in $REPO: $(gh_err) — if that PR exists, this is the wrong checkout"
 
 echo "watch_ci: watching checks on $REPO#$PR (timeout ${TIMEOUT_SECS}s, poll ${POLL_SECS}s)"
 
@@ -61,8 +77,14 @@ guard() { # guard <what-we-are-waiting-for> — timeout and closed-PR check, the
         gh pr checks "$PR" --repo "$REPO" 2>&1 || true
         exit 3
     fi
+    # An unreadable state keeps the watch going — the PR is far more likely still
+    # open than closed — but the reason is printed, because "waiting" that is
+    # really "cannot see the PR any more" is worth knowing before the timeout.
     local state
-    state="$(gh pr view "$PR" --repo "$REPO" --json state --jq .state 2>/dev/null || echo UNKNOWN)"
+    if ! state="$(gh_run pr view "$PR" --repo "$REPO" --json state --jq .state)"; then
+        echo "watch_ci: could not read the state of #$PR, still waiting: $(gh_err)"
+        state=UNKNOWN
+    fi
     if [[ "$state" != "OPEN" && "$state" != "UNKNOWN" ]]; then
         echo "watch_ci: #$PR is $state, stopping the watch."
         exit 2
@@ -70,13 +92,28 @@ guard() { # guard <what-we-are-waiting-for> — timeout and closed-PR check, the
     sleep "$POLL_SECS"
 }
 
-# `gh pr checks --json` exits 8 while anything is still pending and prints
-# nothing at all in the seconds after a push, before the checks register. Both
-# mean keep waiting; the JSON form is used rather than the table because the
-# table is for humans and its columns are not a stable contract.
+# `gh pr checks --json` exits 8 while anything is still pending, which means keep
+# waiting. Every other failure exits 1 — including "no checks reported on the
+# branch", normal in the seconds after a push — so the exit code alone cannot
+# tell a workflow that has not registered yet from a revoked token, and only the
+# message can. It is printed, and repeats are suppressed: at one poll every
+# POLL_SECS the same line would otherwise fill the log for the whole timeout.
+#
+# The JSON form is used rather than the table because the table is for humans and
+# its columns are not a stable contract.
 checks=""
+last_why=""
 while :; do
-    checks="$(gh pr checks "$PR" --repo "$REPO" --json name,state,bucket,link 2>/dev/null || true)"
+    rc=0
+    checks="$(gh_run pr checks "$PR" --repo "$REPO" --json name,state,bucket,link)" || rc=$?
+    if (( rc != 0 && rc != 8 )); then
+        why="$(gh_err)"
+        if [[ "$why" != "$last_why" ]]; then
+            echo "watch_ci: no check data yet: $why"
+            last_why="$why"
+        fi
+        checks=""
+    fi
     pending="?"
     if [[ -n "$checks" ]] && jq -e 'length > 0' <<<"$checks" >/dev/null 2>&1; then
         pending="$(jq -r '[.[] | select(.bucket == "pending")] | length' <<<"$checks")"
