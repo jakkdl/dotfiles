@@ -28,34 +28,6 @@
   },
   "model": "fable",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "$ARGUMENTS is a completed file edit. Decide whether the prose it adds documents the code, or narrates the edit that produced it.\n\nThis check is ADVISORY, and the edit stays applied either way. A finding is a second opinion for the author to weigh, never an instruction. Keeping prose that is accurate and useful, and saying why, is a correct response to a finding; do not expect the author to re-edit prose solely to satisfy this check.\n\nSTEP 1 - File type. Report nothing, with no further analysis, if the file is:\n- a memory file (path contains a /memory/ directory, or ends in MEMORY.md);\n- a message about a change rather than documentation living in the tree: a git message file (COMMIT_EDITMSG, MERGE_MSG, TAG_EDITMSG, SQUASH_MSG), or a draft commit message, pull request description, issue body or review comment, typically a scratchpad or temp-directory file named for a commit/PR/issue.\nRecording history is the entire purpose of those files.\nIf the file is a changelog fragment (path contains a /changelog.d/ directory, or is CHANGELOG.md), apply STEP 4 alone and skip every other rule. A changelog exists to say what changed, so 'now', 'no longer', 'instead of', 'previously' and 'used to' are correct there and must never be flagged.\n\nSTEP 2 - What to read. Judge only the prose the edit ADDS: `new_string` for an Edit, `content` for a Write. `old_string` is text being deleted; it is never a finding and can never be stale, because it is no longer in the file. Within the added text read only code comments, docstrings, and - in markdown or docs files - body text; ignore the code itself, identifiers and string literals. You are shown one edit, not the file, so judge the prose alone: never claim a symbol is undefined or unimported, and never call an edit incomplete. You cannot see enough to know, and other tooling checks correctness.\n\nSTEP 3 - The test. Report when added prose leans on the edit's history instead of standing on its own:\n(a) it describes what the code previously did, compares against an older version ('no longer', 'instead of the old', 'now uses'), or justifies the edit relative to a previous state rather than stating the standing constraint;\n(b) it names a construct that was just removed or replaced - 'an X here would break Y', where X no longer exists;\n(c) it argues against a reading the code never invited, even when it names nothing that was removed: a negation telling the reader what something is NOT for, or denying a purpose nobody would have assumed ('X, not Y', 'this is not a speedup', 'it is not there for Z', 'this does not mean W'). That phrasing answers a reviewer rather than a reader, and it is history even when every clause is true and no earlier version is mentioned.\nStandalone statements of current behavior, constraints and rationale are fine at any length. Never report prose for being long, and never ask for a shorter rewrite of prose that is otherwise sound - a rewrite that loses what the original carried is the worse outcome. A sentence stating a fact about the system - an exit code, a timing, a hardware limit, a reason the obvious approach does not work - is documentation; leave it alone. So is a statement that a mitigation is partial, that a known gap or race stays open, or that a constant is validated in only one configuration: describing the limits of what the code achieves is documenting it. The standalone form says plainly what the construct is for, or drops the comment when the construct is unremarkable: prefer suggesting deletion over a rewritten rebuttal.\n\nSTEP 4 - Reader context. This step applies to changelog fragments alone - a path containing /changelog.d/, or CHANGELOG.md. For every other file skip it entirely: an issue number, a symbol, a file path or a function name in a code comment or docstring is ordinary and useful, and must never be reported. In a changelog fragment, report when the entry leans on context its reader cannot have: a PR, issue or branch number or a commit sha, an internal symbol, file path or function name a user would not recognize, review or chat discussion, or a comparison to a prior behavior it never spells out ('the old way', 'the previous approach').\n\nReport the two strongest findings at most. Quote each offending phrase and give the standalone fact it could be rewritten as. Open the report with \"Advisory (the edit stands - judge for yourself):\". If prose you have already reported comes back unchanged, say that it was reconsidered and kept, and report nothing further on it.",
-            "timeout": 45,
-            "continueOnBlock": true,
-            "statusMessage": "Second pass: checking prose for history-referencing"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "$ARGUMENTS is a shell command about to run. If it does NOT publish prose to a permanent record — i.e. it is not a git commit with a message, not gh pr create/edit/comment, and not gh issue create/comment — pass immediately without further analysis; never fail a command for merely being unrelated. If it does publish prose, check that prose. Commit messages legitimately describe the change they make, including old-vs-new behavior — do not flag that. PR and issue text must stand alone for a reader with zero context from this working session. Fail only for: journey narration or abandoned in-session hypotheses ('after trying X', 'we first thought'), references to the conversation ('as discussed', 'per your suggestion'), trivial strawman hypotheses raised only to dismiss them, or phrasing that assumes the reader watched the change evolve. Genuine competing-hypothesis discussion that tells a reviewer why a path was chosen is fine. When failing, quote the offending phrases and give standalone rewrites.",
-            "timeout": 45,
-            "continueOnBlock": true,
-            "statusMessage": "Second pass: checking published prose"
-          }
-        ]
-      }
-    ],
     "PostCompact": [
       {
         "matcher": "*",
