@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Run a command, keep all of its output in a log, show only what FILTER
+# selects, and exit with the command's own status. `cmd 2>&1 | tail` loses both
+# the status and every line the filter dropped, so a surprise means a rerun.
+set -uo pipefail
+
+prog=${0##*/}
+dir=${RUNLOG_DIR:-${TMPDIR:-/tmp}/runlog-$(id -u)}
+keep_days=${RUNLOG_KEEP_DAYS:-7}
+shell=${RUNLOG_SHELL:-bash}
+
+usage() {
+	cat <<EOF
+usage: $prog 'COMMAND' ['FILTER']
+
+Runs COMMAND with its output captured to a log, prints the log through FILTER
+(default 'tail -n 20'), and exits with COMMAND's own status. Both are shell
+strings run by $shell. FILTER reads the log on stdin; \$RUNLOG is its path.
+
+  $prog 'just test-py' 'tail -n 3'
+  $prog 'git add -u && pre-commit run' 'grep -vE Skipped | tail -n 6'
+  $prog 'just up' 'cat'
+
+The footer prints the log path, so a follow-up look needs no second run and no
+flags — just the usual tools on the file:
+
+  grep -n Error $dir/<that file>.log
+  tail -n 40 $dir/latest
+
+Env: RUNLOG_DIR ($dir), RUNLOG_KEEP_DAYS ($keep_days), RUNLOG_SHELL ($shell).
+EOF
+}
+
+case ${1-} in -h | --help)
+	usage
+	exit 0
+	;;
+esac
+if (($# < 1)); then
+	usage >&2
+	exit 2
+elif (($# > 2)); then
+	printf "%s: takes a command and an optional filter, %d given — quote them:\n  %s 'just test-py' 'tail -n 3'\n" \
+		"$prog" "$#" "$prog" >&2
+	exit 2
+fi
+
+cmd=$1
+filter=${2:-tail -n 20}
+
+if ! mkdir -p "$dir" || ! chmod 700 "$dir"; then
+	printf '%s: cannot use %s\n' "$prog" "$dir" >&2
+	exit 2
+fi
+find "$dir" -maxdepth 1 -type f -mtime "+$keep_days" -delete 2>/dev/null
+
+slug=$(printf '%s' "$cmd" | tr -c 'A-Za-z0-9._-' '-' | tr -s '-' | cut -c1-40)
+slug=${slug#-}
+slug=${slug%-}
+base=$dir/$(date +%Y%m%d-%H%M%S)-${slug:-cmd}
+log=$base.log
+n=0
+while [[ -e $log ]]; do
+	log=$base.$((++n)).log
+done
+
+SECONDS=0
+"$shell" -c "$cmd" >"$log.part" 2>&1
+rc=$?
+secs=$SECONDS
+
+# Progress spinners (flutter, cargo) write \r; splitting them keeps the log
+# greppable. Logs without \r move through byte-for-byte.
+if LC_ALL=C grep -qa $'\r' "$log.part" 2>/dev/null &&
+	sed -e 's/\r$//' -e 's/\r/\n/g' "$log.part" >"$log" 2>/dev/null; then
+	rm -f "$log.part"
+else
+	mv "$log.part" "$log"
+fi
+ln -sfn "$log" "$dir/latest"
+
+view=$(mktemp "${TMPDIR:-/tmp}/$prog.XXXXXX") || view=/dev/null
+trap 'rm -f "$view"' EXIT
+RUNLOG=$log "$shell" -c "$filter" <"$log" >"$view" 2>&1
+cat "$view"
+
+if ((secs >= 60)); then dur=$(printf '%dm%02ds' $((secs / 60)) $((secs % 60))); else dur=${secs}s; fi
+printf '%s | exit %s | %s | %s/%s lines | %s\n' \
+	"$prog" "$rc" "$dur" "$(wc -l <"$view")" "$(wc -l <"$log")" "$log"
+
+exit "$rc"
