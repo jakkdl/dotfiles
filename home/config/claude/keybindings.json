@@ -1,0 +1,20 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-keybindings.json",
+  "$docs": "https://code.claude.com/docs/en/keybindings",
+  "bindings": [
+    {
+      "context": "Confirmation",
+      "bindings": {
+        "escape": "confirm:toggleExplanation",
+        "ctrl+y": "confirm:no"
+      }
+    },
+    {
+      "context": "Select",
+      "bindings": {
+        "escape": "select:previous",
+        "ctrl+y": "select:cancel"
+      }
+    }
+  ]
+}
