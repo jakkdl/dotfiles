@@ -16,6 +16,8 @@ xkb_symbols "nordicletters" {
     //ø on alt+, (qwerty w)
     key <AD02> { [  comma,  less,   oslash,     Oslash  ]	};
 
+    //€ on alt+3
+    key <AE03> { [  3,      numbersign, EuroSign            ]	};
 
     // make right alt altGr
     include "level3(ralt_switch)"
@@ -39,6 +41,9 @@ xkb_symbols "nordicletters_hardware" {
 
     //ø on alt+, (qwerty w)
     key <AB08> { [  comma,  less,   oslash,     Oslash  ]	};
+
+    //€ on alt+3
+    key <AE03> { [  3,      numbersign, EuroSign            ]	};
 
     // make right alt altGr
     include "level3(ralt_switch)"
