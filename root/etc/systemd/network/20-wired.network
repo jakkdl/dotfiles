@@ -24,6 +24,10 @@ DHCP=yes
 MulticastDNS=resolve
 
 [DHCPv4]
+# Identify by plain MAC, not networkd's default RFC-4361 DUID: some consumer
+# routers (e.g. the Zyxel) silently ignore DISCOVERs carrying a DUID identifier,
+# so we never get an IPv4 lease even though other clients (phones) do.
+ClientIdentifier=mac
 # Ignore the DNS servers the DHCP lease offers (the ISP's Nuuday/Vultr resolvers).
 # All lookups go through resolved's Quad9-over-TLS config instead, so the
 # unencrypted ISP servers are never used or even listed on this link.
