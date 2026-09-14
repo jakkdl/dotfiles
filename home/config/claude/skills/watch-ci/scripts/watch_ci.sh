@@ -18,6 +18,13 @@ set -euo pipefail
 # indistinguishable from one that never started. Every exit path says something.
 trap 'echo "watch_ci: unexpected failure at line $LINENO (exit $?)"; exit 1' ERR
 
+# A catchable kill signal otherwise dies with an empty file, indistinguishable
+# from a hang. Name it; a still-silent death next time means SIGKILL (look at
+# whatever sent it, not here).
+trap 'echo "watch_ci: killed by SIGTERM after ${SECONDS}s (${polls:-0} polls)"; exit 143' TERM
+trap 'echo "watch_ci: killed by SIGHUP after ${SECONDS}s (${polls:-0} polls)"; exit 129' HUP
+trap 'echo "watch_ci: interrupted (SIGINT) after ${SECONDS}s (${polls:-0} polls)"; exit 130' INT
+
 TIMEOUT_SECS="${WATCH_CI_TIMEOUT_SECS:-2400}"  # 40 min; the slowest job here is ~3 min
 POLL_SECS="${WATCH_CI_POLL_SECS:-30}"
 deadline=$(( SECONDS + TIMEOUT_SECS ))
