@@ -8,8 +8,12 @@ description: Wait for a pull request's CI checks to conclude and report the resu
 Run the bundled script once, in the background, and end the turn:
 
 ```
-Bash (run_in_background: true): ~/.config/claude/skills/watch-ci/scripts/watch_ci.sh <pr-number>
+Bash (run_in_background: true): ~/.local/bin/busy run ~/.config/claude/skills/watch-ci/scripts/watch_ci.sh <pr-number>
 ```
+
+The `busy run` wrapper keeps the workspace tinted as working for as long as the
+watcher runs and passes the exit status through untouched; skip it only if
+`~/.local/bin/busy` does not exist.
 
 The PR number is optional — with none it resolves the PR for the current branch.
 The script blocks until every check concludes, prints the table, and for each

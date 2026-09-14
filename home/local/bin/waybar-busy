@@ -1,0 +1,21 @@
+#!/bin/sh
+# Start waybar so that it can hot-reload the stylesheet `busy` generates.
+#
+# waybar resolves both the @import in style.css and the paths it watches for
+# reload_style_on_change against its working directory, and ~/.config/waybar/
+# style.css is a relative symlink into the dotfiles repo: only from that
+# directory do the symlink target and busy.css next to it both resolve. Started
+# anywhere else, waybar watches a path that does not exist and never notices
+# the stylesheet changing.
+#
+# busy.css is emptied here rather than merely created: waybar drops imports
+# that do not exist yet from its watch list and would never pick the file up,
+# and starting from empty means a bar started without the `busy` daemon shows
+# no tint at all instead of whatever the daemon last wrote. The daemon paints
+# the live markers back within a tick.
+#
+# Used as sway's swaybar_command, which appends its own "-b <bar id>".
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+cd "$dir" || exit 1
+: > busy.css
+exec waybar "$@"

@@ -72,6 +72,14 @@ button:hover {
     background-color: #eb4d4b;
 }
 
+/* Workspace tints, applied by the rules `busy` generates into busy.css
+   (imported at the end of this file): green where a command is still running,
+   teal where you parked a workspace with $mod+o. Both are quieter than the
+   urgent red above, which stays reserved for things waiting on you, and `busy`
+   gives each workspace at most one of the three so they never collide. */
+@define-color busy #3f8a5a;
+@define-color later #0e7490;
+
 #mode {
     background-color: #64727D;
     border-bottom: 3px solid #ffffff;
@@ -299,3 +307,7 @@ label:focus {
 #custom-toggl.error {
     background-color: #c05151;
 }
+
+/* Last, so its per-workspace rules win over the colours above. Generated in
+   ~/.config/waybar by `busy`, and emptied there by waybar-busy at startup. */
+@import "busy.css";

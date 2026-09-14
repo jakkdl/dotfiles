@@ -45,6 +45,9 @@ exec sway-session-restore
 # save on poweroff/reboot via a logind delay-inhibitor; watches its own
 # $SWAYSOCK and exits with this sway instance
 exec sway-session-shutdown-watch
+# tint the waybar workspace of any terminal with a command still running; exits
+# with this sway instance. See ~/.local/bin/busy.
+exec busy daemon
 
 ### Output configuration
 #
@@ -203,6 +206,9 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
 
     # new PR: prompt for a name, open a fresh workspace with newpr + claude
     bindsym $mod+n exec "newpr_workspace.py"
+
+    # park the workspace as one to get back to (teal in waybar); toggles
+    bindsym $mod+o exec "busy later"
 
     # volume
     # button4 = scroll up, button5 = scroll down
@@ -381,7 +387,9 @@ bindsym $mod+Ctrl+r mode "resize"
 # Status Bar:
 #
 # Read `man 5 sway-bar` for more information about this section.
-bar swaybar_command waybar
+# waybar-busy is waybar started from ~/.config/waybar, which is what lets it
+# hot-reload the stylesheet `busy` generates.
+bar swaybar_command waybar-busy
 # bar {
 #     position top
 # 
