@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Checks that all files in the root and home directories have symlinks on the system,
 and prompts to create or warns about missing them"""
+
 import difflib
 import os
 import os.path
@@ -38,22 +39,31 @@ def check_submodules() -> list[str]:
 def copy_folder_contents(folder: str, replace: str) -> list[str]:
     """checks if file contents differ, returns list of commands needed to rectify"""
     commands = []
-    for dirpath, _dirnames, filenames in os.walk(folder):
+    for dirpath, dirnames, filenames in os.walk(folder):
+        if "__pycache__" in dirnames:
+            dirnames.remove("__pycache__")
         # root/ -> /
         # root/dir/ -> /dir/
         base = os.path.join(replace, dirpath[len(folder) + 1 :], "")
         # basepath = base
 
         for filename in filenames:
+            if filename.endswith(".pyc"):
+                continue
             remove = False
             path = base + filename
             abstarget = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.join(dirpath, filename)
 
-            # TODO: this thinks we don't have perms to
-            # view dirs that doesn't exist
-            if not os.access(base, mode=os.R_OK):
-                print(f'No permissions to check {path}')
+            if not os.path.isdir(base):
+                print(f"{path} missing (directory {base} does not exist)")
+                if input("copy? [Y/n] ").lower() == "n":
+                    continue
+                mkdir = f"sudo mkdir -p {base}"
+                if mkdir not in commands:
+                    commands.append(mkdir)
+            elif not os.access(base, mode=os.R_OK):
+                print(f"No permissions to check {path}")
                 continue
             elif not (os.path.isfile(path) or os.path.islink(path)):
                 print(f"{path} missing")
@@ -86,23 +96,25 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
     return commands
 
 
-def diff_files(path: str, target: str, ask_identical: bool = False) -> Literal["y"] | Literal["n"] | Literal["r"]:
+def diff_files(
+    path: str, target: str, ask_identical: bool = False
+) -> Literal["y"] | Literal["n"] | Literal["r"]:
     """check file contents, prompt whether to overwrite.
     returns 'y' if it should be overwritten"""
     # check if read rights
     path_content = []
     target_content = []
-    #with open(path, encoding="utf-8") as file:
+    # with open(path, encoding="utf-8") as file:
     #    path_content = file.readlines()
-    #with open(target, encoding="utf-8") as file:
+    # with open(target, encoding="utf-8") as file:
     #    target_content = file.readlines()
     try:
-        with open(path, encoding='utf-8') as file:
+        with open(path, encoding="utf-8") as file:
             path_content = file.readlines()
-        with open(target, encoding='utf-8') as file:
+        with open(target, encoding="utf-8") as file:
             target_content = file.readlines()
     except PermissionError:
-        res = input(f'No permission to view {path}, overwrite? [Y/n] ')
+        res = input(f"No permission to view {path}, overwrite? [Y/n] ")
         if res.lower() == "n":
             return "n"
     diff = list(difflib.context_diff(path_content, target_content))
@@ -133,7 +145,9 @@ def diff_files(path: str, target: str, ask_identical: bool = False) -> Literal["
 
 def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
     """symlink user-writable files."""
-    for dirpath, _, filenames in os.walk(folder):
+    for dirpath, dirnames, filenames in os.walk(folder):
+        if "__pycache__" in dirnames:
+            dirnames.remove("__pycache__")
         if dirpath == folder:
             # home/ -> ~/.
             base = os.path.join(replace, prefix)
@@ -144,6 +158,8 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
             basepath = base
 
         for filename in filenames:
+            if filename.endswith(".pyc"):
+                continue
             path = base + filename
             real_target_path = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.relpath(real_target_path, basepath)
@@ -173,8 +189,7 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
 
             elif actual_target := os.readlink(path) not in (target, real_target_path):
                 print(
-                    f"{path} incorrect target\n\t{actual_target} "
-                    f"should be\n\t{target}"
+                    f"{path} incorrect target\n\t{actual_target} should be\n\t{target}"
                 )
                 # TODO: prompt to fix
 
