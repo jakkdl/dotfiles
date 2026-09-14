@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Stage, run pre-commit, run the tests — one command, from the worktree root,
+# with the full output logged and only the failures printed. A thin wrapper over
+# runlog so the exit status is the real one.
+set -uo pipefail
+
+prog=${0##*/}
+tests=1
+
+usage() {
+	cat <<EOF
+usage: $prog [--no-tests] [TEST COMMAND...]
+
+Runs 'git add -u', then pre-commit (restaging and rerunning once if hooks
+reformat files), then the tests. All of it goes through runlog: full output on
+disk, printed output is the failures — or the last few lines when everything
+passed — and the exit status is real.
+
+  $prog                                  git add -u, pre-commit, just test-py
+  $prog --no-tests                       pre-commit only
+  $prog pytest clairos/tests/test_x.py   that instead of just test-py
+
+Only tracked changes are staged. To include a new file, name it: 'git add
+path/to/new && $prog'. There is deliberately no 'git add -A'.
+
+Runs from the worktree root, so it needs no 'cd' prefix. To see more than the
+printed slice, use the log path in the footer — never rerun to widen a filter.
+EOF
+}
+
+while (($#)); do
+	case $1 in
+	-h | --help)
+		usage
+		exit 0
+		;;
+	-n | --no-tests)
+		tests=0
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	-*)
+		printf '%s: unknown option %s\n\n' "$prog" "$1" >&2
+		usage >&2
+		exit 2
+		;;
+	*) break ;;
+	esac
+done
+
+if ! root=$(git rev-parse --show-toplevel 2>/dev/null) || [[ -z $root ]]; then
+	printf '%s: not inside a git repository\n' "$prog" >&2
+	exit 2
+fi
+if ! command -v runlog >/dev/null; then
+	printf '%s: runlog is not on PATH\n' "$prog" >&2
+	exit 2
+fi
+
+# An explicit test command wins; otherwise use the justfile's suite. Ask just
+# for the recipe list rather than grepping the justfile: a recipe with
+# parameters ('test-py *flags:') does not match a naive '^test-py:' regex, and
+# guessing wrong here means silently running no tests at all.
+skip_reason='tests skipped'
+if (($#)); then
+	test_cmd=$(printf '%q ' "$@")
+	tests=1
+elif ! ((tests)); then
+	test_cmd=''
+elif [[ ! -f $root/justfile ]] || ! command -v just >/dev/null; then
+	tests=0
+	test_cmd=''
+	skip_reason='no justfile, pre-commit only'
+elif just --justfile "$root/justfile" --working-directory "$root" --summary 2>/dev/null |
+	tr ' ' '\n' | grep -qx test-py; then
+	test_cmd='just test-py'
+else
+	printf "%s: the justfile has no 'test-py' recipe — name the tests instead: %s <test command>\n" \
+		"$prog" "$prog" >&2
+	exit 2
+fi
+
+# Section markers let the filter show the tail of whichever part failed, instead
+# of a blind tail that would bury a hook failure under the test output.
+script="cd $(printf '%q' "$root") || exit 1
+git add -u || exit 1
+echo '--- check: pre-commit'
+pc=0; pre-commit run || pc=\$?
+if ((pc)) && ! git diff --quiet; then
+	echo '--- check: hooks rewrote files; restaging and rerunning'
+	git add -u
+	pc=0; pre-commit run || pc=\$?
+fi
+"
+if ((tests)); then
+	script+="echo '--- check: tests'
+t=0; $test_cmd || t=\$?
+echo \"--- check: pre-commit=\$pc tests=\$t\"
+((pc == 0 && t == 0))
+"
+else
+	script+="echo \"--- check: pre-commit=\$pc ($skip_reason)\"
+((pc == 0))
+"
+fi
+
+# All green: whatever the suite ended on, plus the summary line — which always
+# survives, so "no tests ran" can never look like "everything passed". Otherwise
+# the tail of each section, minus pre-commit's per-hook Passed/Skipped lines,
+# which say nothing. Everything dropped is still in the log.
+filter=$(
+	cat <<'FILTER'
+if tail -n 1 "$RUNLOG" | grep -qE 'pre-commit=0( tests=0| \(tests skipped\))$'; then
+	grep -E '^--- check: hooks' "$RUNLOG"
+	grep -vE '(Passed|Skipped)$|^--- check: (pre-commit|tests)$|^--- check: hooks' "$RUNLOG" |
+		tail -n 3
+else
+	sed -n '/^--- check: pre-commit$/,/^--- check: tests$/{/^--- check: tests$/!p}' "$RUNLOG" |
+		grep -vE '(Passed|Skipped)$' | tail -n 15
+	sed -n '/^--- check: tests$/,$p' "$RUNLOG" | tail -n 15
+fi
+FILTER
+)
+
+RUNLOG_NAME=$prog exec runlog "$script" "$filter"
