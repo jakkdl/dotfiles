@@ -76,7 +76,7 @@ output "LG Electronics LG HDR 4K 111NTKFGH949" scale 1.5
 
 # Clair Monitors
 output "Dell Inc. DELL U2724DE H6NXG34" position 0 0
-output "Lenovo Group Limited P27h-20 V90AR43K" transform 270 position 2560 0
+output "Lenovo Group Limited P27h-20 V90AR43K" position 2560 0
 # clair laptop
 output "Lenovo Group Limited 0x403D Unknown" position 640 1440
 
