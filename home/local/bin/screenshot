@@ -1,0 +1,10 @@
+#!/bin/sh
+# grimshot save, but with a colon-free timestamp: grimshot's default filename
+# (date -Ins) contains colons, which Teams et al. refuse in attachment names.
+set -eu
+
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs
+[ -f "$conf" ] && . "$conf"
+dir=${XDG_SCREENSHOTS_DIR:-${XDG_PICTURES_DIR:-$HOME}}
+
+exec grimshot save "${1:-area}" "$dir/$(date +%Y-%m-%dT%H-%M-%S,%3N%z).png"
