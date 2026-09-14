@@ -133,7 +133,7 @@ alias sudo='sudo '
 #TODO: automatically update plocate database, and write alias to use the one in
 #home
 
-function pip() { command pip $@ && /usr/bin/pkill zsh --signal=USR1 }
+function pip() { command pip $@ && zsh-signal USR1 }
 
 function toggle_theme() {
     last_scheme=$(tail -n 1 ~/.config/.theme_history)
@@ -149,7 +149,7 @@ function toggle_theme() {
     fi
     new_scheme=$(tail -n 1 ~/.config/.theme_history)
     echo "new scheme $new_scheme"
-    pkill -USR2 zsh
+    zsh-signal USR2
     sleep 0.1
     echo $new_scheme > ~/.config/.theme_history
 }

@@ -12,4 +12,4 @@ Depends = zsh
 Depends = procps-ng
 When = PostTransaction
 Description = updating zsh tab completion cache
-Exec = /usr/bin/pkill zsh --signal=USR1
+Exec = /usr/local/bin/zsh-signal USR1

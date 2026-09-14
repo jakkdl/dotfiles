@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Signal interactive zshs only (stdin on a terminal), instead of a bare
+# `pkill zsh`: that also hits the `zsh -c` wrappers Claude Code runs its
+# background tasks under, which have no TRAPUSR* handlers and die silently.
+#
+# Usage: zsh-signal USR1
+
+sig="${1:?usage: zsh-signal SIGNAL}"
+for pid in $(pgrep -x zsh); do
+    case "$(readlink "/proc/$pid/fd/0" 2>/dev/null)" in
+        /dev/pts/* | /dev/tty[0-9]*) kill -s "$sig" "$pid" 2>/dev/null ;;
+    esac
+done
