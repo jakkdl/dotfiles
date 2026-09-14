@@ -23,6 +23,22 @@ path if a filter needs the filename).
 everything the filter dropped, so any surprise costs a second run of a suite
 that took 40 seconds.
 
+For staging + pre-commit + tests, use [`check`](../check/SKILL.md) instead of
+composing it by hand.
+
+## Compound commands
+
+Wrap the expensive part, leave the trivia outside — `cd`, `ls`, `echo` gain
+nothing from a log:
+
+```
+cd worktree && runlog 'pre-commit run && just test-py' 'grep -vE "Passed|Skipped$" | tail -n 5'
+```
+
+not `runlog 'cd worktree && …'`. If the command already contains single quotes,
+that is the signal to split it: run the cheap steps directly and give runlog
+only the step whose output is long enough to need filtering.
+
 ## Seeing more afterwards
 
 The footer names the log:
@@ -51,4 +67,5 @@ Rerunning a suite to widen a `tail` is the exact waste this exists to stop.
   dropping back to `| tail`; broadly allowlisting `Bash(runlog *)` would allow
   anything.
 - Logs live in `/tmp/runlog-$UID/` (`RUNLOG_DIR`), pruned after 7 days
-  (`RUNLOG_KEEP_DAYS`). They survive across sessions.
+  (`RUNLOG_KEEP_DAYS`). They survive across sessions. `RUNLOG_NAME` sets the
+  filename stem, for wrappers whose command string would slug badly.

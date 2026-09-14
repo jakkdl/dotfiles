@@ -27,7 +27,8 @@ flags — just the usual tools on the file:
   grep -n Error $dir/<that file>.log
   tail -n 40 $dir/latest
 
-Env: RUNLOG_DIR ($dir), RUNLOG_KEEP_DAYS ($keep_days), RUNLOG_SHELL ($shell).
+Env: RUNLOG_DIR ($dir), RUNLOG_KEEP_DAYS ($keep_days), RUNLOG_SHELL ($shell),
+RUNLOG_NAME (log filename stem; defaults to a slug of COMMAND).
 EOF
 }
 
@@ -54,7 +55,7 @@ if ! mkdir -p "$dir" || ! chmod 700 "$dir"; then
 fi
 find "$dir" -maxdepth 1 -type f -mtime "+$keep_days" -delete 2>/dev/null
 
-slug=$(printf '%s' "$cmd" | tr -c 'A-Za-z0-9._-' '-' | tr -s '-' | cut -c1-40)
+slug=$(printf '%s' "${RUNLOG_NAME:-$cmd}" | tr -c 'A-Za-z0-9._-' '-' | tr -s '-' | cut -c1-40)
 slug=${slug#-}
 slug=${slug%-}
 base=$dir/$(date +%Y%m%d-%H%M%S)-${slug:-cmd}
