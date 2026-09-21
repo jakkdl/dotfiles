@@ -132,7 +132,7 @@ sudo pacman -S brightnessctl
 ```
 
 noto-fonts-emoji (emoji picker, etc)
-ttf-fonts-awesome (waybar)
+otf-font-awesome (waybar icons)
 
 
 
