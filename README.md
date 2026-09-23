@@ -47,11 +47,15 @@ $ sudo systemctl enable --now suspend_low_bat.timer
 ## sway session save/restore
 
 `~/.local/bin/sway-session` snapshots all workspaces (layout, programs, terminal
-cwds, nvim sessions, per-terminal history) and restores them on next login. No
-setup beyond `apply_symlinks.py` — it is wired entirely through the sway config:
+cwds, nvim sessions, per-terminal history) and restores them on next login.
+Wired through the sway config plus one system unit:
 
 - saved before every suspend via `swayidle`'s `before-sleep` (covers idle,
   low-battery and manual suspend), and on sway exit via `$mod+Ctrl+Shift+q`;
+- saved on poweroff/reboot by `sway-session-save.service`'s `ExecStop`;
+  `session-.scope.d/sway-session-save.conf` orders every login session scope
+  before it, so it stops (and saves) while sway is still running. Enable once:
+  `sudo systemctl enable --now sway-session-save.service`;
 - restored once per login via `exec sway-session-restore` in the sway config;
 - per-terminal history is captured by a `zshaddhistory` hook in `.zshrc`.
 

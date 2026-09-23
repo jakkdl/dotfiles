@@ -42,9 +42,6 @@ exec_always xdg-user-dirs-create
 # Restore the previous session (runs once per login; exec, not exec_always, so
 # it does not re-run on config reload). See ~/.local/bin/sway-session.
 exec sway-session-restore
-# save on poweroff/reboot via a logind delay-inhibitor; watches its own
-# $SWAYSOCK and exits with this sway instance
-exec sway-session-shutdown-watch
 # tint the waybar workspace of any terminal with a command still running; exits
 # with this sway instance. See ~/.local/bin/busy.
 exec busy daemon

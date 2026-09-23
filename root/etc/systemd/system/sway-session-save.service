@@ -1,0 +1,20 @@
+[Unit]
+Description=Save the sway session before the login session is torn down
+# session-.scope.d/sway-session-save.conf orders every login session scope
+# Before= this unit, so at shutdown this ExecStop runs while sway is alive
+RequiresMountsFor=/home/jhl
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=jhl
+ExecStart=/usr/bin/true
+ExecStop=/home/jhl/.local/bin/sway-session save shutdown
+TimeoutStopSec=30
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+# alert -> notify-send
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+Environment=PATH=/home/jhl/.local/bin:/usr/bin
+
+[Install]
+WantedBy=multi-user.target
