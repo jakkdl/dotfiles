@@ -6,6 +6,7 @@ Operation = Upgrade
 Target = *
 
 [Action]
+Depends = pacman-contrib
 Description = Remove uninstalled package cache files not accessed in 1 month.
 When = PostTransaction
 Exec = /usr/bin/paccache --remove --uninstalled --keep 0 --min-atime "-1 month"
