@@ -1,4 +1,7 @@
 AddKeysToAgent yes
 
+# Remotes rarely have foot's terminfo.
+SetEnv TERM=xterm-256color
+
 # Machine/work-specific hosts live in an untracked local file.
 Include ~/.ssh/config.local
