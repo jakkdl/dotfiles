@@ -259,6 +259,34 @@ _gdwt() {
     _describe 'worktrees' worktrees
 }
 #compdef _gdwt gdwt
+
+# clean up after a merged PR: remove the worktree we're standing in and its
+# branch, then close the terminal (newpr opens one per PR)
+function pr_done() {
+    local gitdir wt branch
+    gitdir=$(git rev-parse --absolute-git-dir) || return 1
+    if [[ $gitdir != */.git/worktrees/* ]]; then
+        echo "pr_done: not in a linked worktree" >&2
+        return 1
+    fi
+    if [[ -n $(git status --porcelain) ]]; then
+        echo "pr_done: worktree is not clean" >&2
+        return 1
+    fi
+    wt=$(git rev-parse --show-toplevel) || return 1
+    branch=$(git branch --show-current)
+    if [[ -z $branch ]]; then
+        echo "pr_done: detached HEAD, no branch to delete" >&2
+        return 1
+    fi
+    # cd to the main worktree first; our CWD is about to be deleted.
+    # -D since squash/rebase merges leave the branch looking unmerged to git.
+    cd ${gitdir:h:h:h} &&
+    git worktree remove $wt &&
+    git branch -D $branch &&
+    # only on full success; zsh still refuses if there are running jobs
+    exit
+}
 function resetfile() {
     check_args 2 $# || return 1
     git reset $1 -- $2
