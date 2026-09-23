@@ -3,7 +3,9 @@
 # sway-session: an activated venv shadows `python` and won't have i3ipc.
 """Start work on a new PR/project from a sway binding.
 
-Prompts for a name with wofi, takes the lowest free numbered workspace,
+Takes the name from argv or stdin (the sway binding pipes a wofi prompt into
+this script, so the input field shows up without waiting on python + i3ipc
+startup), takes the lowest free numbered workspace,
 renames it to "<num> <name>", and opens a terminal in ~/Git/clairos that runs
 `newpr <name>` (the zsh function: branch + worktree + venv) and then claude.
 
@@ -27,18 +29,8 @@ from i3ipc.aio import Connection
 REPO = Path.home() / "Git/clairos"
 
 
-def prompt_name() -> str:
-    res = subprocess.run(
-        ["wofi", "--dmenu", "--hide-scroll", "--lines=1", "--prompt=new PR:"],
-        stdout=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
-    return res.stdout.strip()
-
-
 async def main() -> int:
-    name = sys.argv[1] if len(sys.argv) > 1 else prompt_name()
+    name = sys.argv[1] if len(sys.argv) > 1 else sys.stdin.read().strip()
     if not name:  # cancelled
         return 0
     name = name.replace(" ", "_")

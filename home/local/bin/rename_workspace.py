@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import subprocess
+import sys
 import asyncio
 from i3ipc.aio import Connection
 
@@ -41,14 +42,8 @@ def iconify(name: str) -> str:
 
 
 async def main():
-    # get name from wofi
-    res = subprocess.run(
-        ["wofi", "--dmenu", "--hide-scroll", "--lines=1"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    name = iconify(res.stdout.strip())
+    # the sway binding pipes the wofi prompt's output to our stdin
+    name = iconify(sys.stdin.read().strip())
     print(name)
 
     ipc = await Connection().connect()

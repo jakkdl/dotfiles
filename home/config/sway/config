@@ -199,10 +199,12 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     # happens even if the save fails).
     bindsym $mod+Ctrl+Shift+q exec "sway-session-save exit; swaymsg exit"
 
-    bindsym $mod+r exec "rename_workspace.py"
+    # wofi runs here in the binding, piped into the script, so the input
+    # field appears without waiting on python + i3ipc startup
+    bindsym $mod+r exec "wofi --dmenu --hide-scroll --lines=1 | rename_workspace.py"
 
     # new PR: prompt for a name, open a fresh workspace with newpr + claude
-    bindsym $mod+n exec "newpr_workspace.py"
+    bindsym $mod+n exec "wofi --dmenu --hide-scroll --lines=1 --prompt='new PR:' | newpr_workspace.py"
 
     # park the workspace as one to get back to (teal in waybar); toggles
     bindsym $mod+o exec "busy later"
