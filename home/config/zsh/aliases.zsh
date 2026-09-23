@@ -358,5 +358,75 @@ sway (mod = alt)
   mod+a           focus parent container"
 }
 
+# Log in to a captive portal (hotel/airport/café wifi) without touching system DNS.
+#
+# resolved is pinned to Quad9 for every domain (Domains=~. in resolved.conf.d) and
+# both .network files set UseDNS=no, so the network's own resolver is never asked.
+# A portal works by hijacking exactly that resolver, and blocks everything else until
+# you log in — so on portal wifi nothing resolves and the login page never appears.
+#
+# This runs one throwaway Firefox inside a mount namespace that sees a private
+# /etc/resolv.conf pointing at the DHCP-advertised resolver. Nothing global changes,
+# so there is nothing to restore afterwards and every other program keeps using Quad9
+# while the portal window is open. bwrap is used purely for that mount overlay, not to
+# sandbox anything: --dev-bind / / hands Firefox the whole filesystem as usual.
+portal() {
+    local dev hex octet tmp i
+    local -a dns
+
+    dev=$(ip -4 -json route show default | jq -r '.[0].dev // empty')
+    if [[ -z $dev ]]; then
+        echo "portal: no IPv4 default route, not associated with a network?" >&2
+        return 1
+    fi
+
+    # DHCP option 6 is the resolver list. networkd records the raw lease even though
+    # UseDNS=no stops it from ever being used, and networkctl serves it without root
+    # (unlike the lease files under /run/systemd/netif, which are root-only).
+    hex=$(networkctl status $dev --json=short |
+          jq -r '.DHCPv4Client.Lease.Message.options[]? | select(.tag == 6) | .data')
+    for ((i = 1; i <= ${#hex}; i += 8)); do
+        octet=${hex[i,i+7]}
+        dns+=("$(( 16#${octet[1,2]} )).$(( 16#${octet[3,4]} )).$(( 16#${octet[5,6]} )).$(( 16#${octet[7,8]} ))")
+    done
+    # Networks that hand out no resolver still usually answer DNS on the gateway.
+    (( $#dns )) || dns=($(ip -4 -json route show default | jq -r '.[0].gateway // empty'))
+    if (( ! $#dns )); then
+        echo "portal: $dev advertised no DNS server and has no gateway" >&2
+        return 1
+    fi
+
+    tmp=$(mktemp -d) || return 1
+    {
+        printf 'nameserver %s\n' $dns > $tmp/resolv.conf
+        # nss-resolve answers lookups from resolved (i.e. Quad9) before glibc ever
+        # reads resolv.conf, so it has to come out of the hosts line as well.
+        sed 's/^hosts:.*/hosts: files dns/' /etc/nsswitch.conf > $tmp/nsswitch.conf
+
+        mkdir $tmp/profile
+        # trr=5 disables DNS-over-HTTPS, which would resolve over the network and
+        # ignore the namespace; https_first would upgrade the probe URL to https,
+        # which portals cannot intercept.
+        cat > $tmp/profile/user.js <<'EOF'
+user_pref("network.trr.mode", 5);
+user_pref("dom.security.https_first", false);
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+EOF
+
+        echo "portal: resolving via $dns[1] on $dev; close the window when logged in."
+        echo "portal: a page reading \"Success\" means there is no portal to log in to."
+        # /etc/resolv.conf is a symlink and bwrap refuses to mount over one, so bind
+        # the stub file it points at instead. Both binds exist only in the namespace.
+        bwrap --dev-bind / / --die-with-parent \
+            --bind $tmp/resolv.conf /run/systemd/resolve/stub-resolv.conf \
+            --bind $tmp/nsswitch.conf /etc/nsswitch.conf \
+            -- firefox --profile $tmp/profile --no-remote --new-instance \
+               http://detectportal.firefox.com/canonical.html
+    } always {
+        rm -rf $tmp
+    }
+}
+
 # machine-local aliases/functions not tracked in the dotfiles repo
 [[ -f ~/.config/zsh/aliases.local.zsh ]] && source ~/.config/zsh/aliases.local.zsh
