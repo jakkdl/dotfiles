@@ -100,7 +100,7 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
             abstarget = os.path.realpath(os.path.join(dirpath, filename))
             target = os.path.join(dirpath, filename)
 
-            if not os.path.isdir(base):
+            if dir_missing(base):
                 print(f"{path} missing (directory {base} does not exist)")
                 if input("copy? [Y/n] ").lower() == "n":
                     continue
@@ -143,6 +143,18 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
     if needs_daemon_reload:
         commands.append("sudo systemctl daemon-reload")
     return commands
+
+
+def dir_missing(path: str) -> bool:
+    """whether path does not exist. Unlike `not os.path.isdir(path)`, a path
+    that can't be stat'ed because a parent isn't searchable is not missing."""
+    try:
+        os.stat(path)
+    except FileNotFoundError:
+        return True
+    except PermissionError:
+        pass
+    return False
 
 
 def diff_files(
