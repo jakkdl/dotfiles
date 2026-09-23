@@ -156,3 +156,20 @@ sudo ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 ```
 sudo pacman -S libnotify jq
 ```
+
+## catching a hung shutdown
+
+If shutdown sits on the console printing `task X blocked for more than N
+seconds`, the name in that line is the culprit but the kernel log dies with the
+machine. Two files make it recoverable: `/etc/default/grub.d/pstore.cfg`
+turns on EFI pstore and `/etc/sysctl.d/90-sysrq.conf` enables the SysRq dump
+and reboot keys. After `apply_symlinks.py`:
+```
+$ sudo grub-mkconfig -o /boot/grub/grub.cfg
+$ sudo systemctl enable systemd-pstore.service
+$ sudo sysctl --system
+```
+At the next hang press Alt+SysRq+w (dump blocked tasks with stack traces),
+then Alt+SysRq+c (panic, which saves the log to EFI variables and reboots).
+The log is under `/var/lib/systemd/pstore/` after boot. Alt+SysRq+s, u, b
+is the sync, remount read-only, reboot sequence when you just want out.
