@@ -342,5 +342,21 @@ cst() {
     cstpretty "$1" | less --quit-if-one-screen --no-init --quit-at-eof --LINE-NUMBERS --incsearch
 }
 
+# cheat sheet for keybinds I tend to forget
+function help() {
+    print -r -- "\
+foot
+  ctrl+shift+o    show URLs
+  ctrl+shift+g    wl-copy last command's output
+
+sway (mod = alt)
+  mod+b           split horizontally
+  mod+v           split vertically
+  mod+s           layout stacking
+  mod+w           layout tabbed
+  mod+e           layout toggle split
+  mod+a           focus parent container"
+}
+
 # machine-local aliases/functions not tracked in the dotfiles repo
 [[ -f ~/.config/zsh/aliases.local.zsh ]] && source ~/.config/zsh/aliases.local.zsh
