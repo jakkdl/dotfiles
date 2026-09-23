@@ -6,23 +6,27 @@
 
 Subcommands:
   mark / unmark   set or clear the marker for the calling terminal
-                  (--sub counts a subagent of the owner instead; the terminal
-                  stays marked while any subagent is still running)
-  unmark --all    clear the marker and the subagent count (session over)
-  active          exit 0 while the calling claude still has subagents or
-                  `run` commands going, 1 once it is truly idle
+                  (--sub marks one subagent of the owner instead, keyed on the
+                  agent_id in the hook JSON on stdin; the terminal gets its
+                  own tint while only subagents are still running)
+  unmark --all    clear the marker and every subagent mark (session over)
+  active          exit 0 while the calling claude still has subagents,
+                  background tasks, or `run` commands going, 1 once idle
   run CMD...      hold the marker for as long as CMD runs
   later           toggle "get back to this" on the focused workspace
   daemon          keep the generated waybar stylesheet in sync with both
 
 A marker is a file in $XDG_RUNTIME_DIR/busy, named after the process that owns
 it (the enclosing claude, or the calling shell) and holding the pid of the
-terminal window it runs in; it lives only as long as its owner. Subagents are
-tallied next to it in <owner>.subs, one "+" or "-" line per start or stop —
-appends, because start and stop hooks for parallel subagents overlap and a
-read-modify-write would race. A later mark is a workspace name in
-$XDG_STATE_HOME/busy/later, and stays until toggled off, including across a
-reboot.
+terminal window it runs in; it lives only as long as its owner. A marker a
+claude owns is its turn running and tints the strong green; any other owner —
+a subagent, a `run` command, a shell — is background work and tints the
+lighter green. Each running subagent is one <owner>.sub.<agent_id> file
+beside the claude's own — one file per agent,
+not a counter, because stop hooks also fire for subagents whose start hook
+never ran, and those must fall through as no-ops instead of eating a running
+agent's count. A later mark is a workspace name in $XDG_STATE_HOME/busy/later,
+and stays until toggled off, including across a reboot.
 
 The daemon maps marked terminal pids to workspaces through the sway tree and
 writes one rule per tinted workspace into ~/.config/waybar/busy.css, which
@@ -30,9 +34,12 @@ style.css imports. waybar swaps that stylesheet in on the fly, without the
 flicker a SIGUSR2 reset would cause; it needs "reload_style_on_change" and the
 working directory waybar-busy gives it.
 
-No workspace is tinted for two reasons at once: urgent wins over both, so the
-red of something waiting on you (see `alert`) is never painted over, and work
-running wins over a later mark, which comes back when the work finishes.
+No workspace is tinted for two reasons at once: work running wins, then
+subagents running, then urgent, then a later mark, which comes back when the
+work finishes. The generated rules out-rank waybar's urgent red (see `alert`)
+by selector specificity, and sway keeps a window urgent until it is focused,
+so a red that arrives mid-run is not lost, just held back until the work is
+done.
 """
 
 from __future__ import annotations
@@ -147,56 +154,64 @@ def unmark(owner: int, everything: bool = False) -> None:
     with contextlib.suppress(OSError):
         (MARKERS / str(owner)).unlink()
     if everything:
+        for marker in MARKERS.glob(f"{owner}.sub.*"):
+            with contextlib.suppress(OSError):
+                marker.unlink()
+    poke()
+
+
+def hook_json() -> dict[str, object]:
+    """The hook input on stdin, {} interactively or when it is not JSON."""
+    if sys.stdin.isatty():
+        return {}
+    with contextlib.suppress(OSError, ValueError):
+        data = json.load(sys.stdin)
+        if isinstance(data, dict):
+            return data
+    return {}
+
+
+def sub_mark(owner: int, terminal: int, agent: str, done: bool) -> None:
+    """Set or clear the marker for one subagent of owner.
+
+    A stop for an agent that was never marked unlinks nothing: stop hooks
+    fire for more kinds of subagent than start hooks do.
+    """
+    path = MARKERS / f"{owner}.sub.{agent}"
+    if done:
         with contextlib.suppress(OSError):
-            (MARKERS / f"{owner}.subs").unlink()
+            path.unlink()
+    else:
+        MARKERS.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{terminal}\n")
     poke()
 
 
-def sub_mark(owner: int, terminal: int, done: bool) -> None:
-    """Tally a subagent of owner starting (or, done, finishing)."""
-    MARKERS.mkdir(parents=True, exist_ok=True)
-    with (MARKERS / f"{owner}.subs").open("a") as f:
-        f.write("-\n" if done else f"+ {terminal}\n")
-    poke()
+def marked_terminals() -> tuple[set[int], set[int]]:
+    """(terminals where a claude is working, terminals with background work),
+    from every marker whose owner is still alive.
 
-
-def sub_terminal(tally: str) -> int | None:
-    """The terminal pid from a .subs tally, None unless subagents are running.
-
-    Clamped at zero: a stop without its start (hooks added mid-session, a
-    start hook that died) must not cancel out a later, real one.
+    A marker owned by a claude is its turn running; any other owner — a
+    subagent mark, a `run` command, a shell — is background work and gets the
+    lighter tint. Markers left behind by a killed owner are dropped here:
+    nothing else cleans them up, and the terminal they name usually outlives
+    the owner.
     """
-    count = 0
-    terminal = None
-    for line in tally.splitlines():
-        if line.startswith("+"):
-            count += 1
-            terminal = int(line.split()[1])
-        elif line.startswith("-"):
-            count = max(0, count - 1)
-    return terminal if count > 0 else None
-
-
-def marked_terminals() -> set[int]:
-    """Terminal pids of every marker whose owner is still alive.
-
-    Markers left behind by a killed owner are dropped here: nothing else
-    cleans them up, and the terminal they name usually outlives the owner.
-    """
-    terminals: set[int] = set()
+    main: set[int] = set()
+    subs: set[int] = set()
     for marker in MARKERS.glob("[0-9]*"):
-        if not Path("/proc", marker.name.partition(".")[0]).exists():
+        owner, _, rest = marker.name.partition(".")
+        if not Path("/proc", owner).exists():
             with contextlib.suppress(OSError):
                 marker.unlink()
             continue
         with contextlib.suppress(OSError, ValueError, IndexError):
-            if marker.name.endswith(".subs"):
-                terminal = sub_terminal(marker.read_text())
-                if terminal is not None:
-                    terminals.add(terminal)
+            terminal = int(marker.read_text().split()[0])
+            if not rest and proc_comm(int(owner)) == "claude":
+                main.add(terminal)
             else:
-                terminals.add(int(marker.read_text()))
-    return terminals
+                subs.add(terminal)
+    return main, subs
 
 
 # --- later marks -------------------------------------------------------------
@@ -288,16 +303,22 @@ async def render(ipc: Connection, seen: dict[int, str]) -> None:
     workspaces = tree.workspaces()
     later = follow_renames(workspaces, seen)
     urgent = {workspace.name for workspace in workspaces if workspace.urgent}
-    terminals = marked_terminals()
+    main, sub_terminals = marked_terminals()
     busy: set[str] = set()
-    if terminals:
+    subs: set[str] = set()
+    if main or sub_terminals:
         for con in tree:
             workspace = con.workspace()
-            if con.pid in terminals and workspace:
-                busy.add(workspace.name)
-    busy -= urgent
-    later -= urgent | busy
-    write_css(HEADER + rules(busy, "busy") + rules(later, "later"))
+            if workspace:
+                if con.pid in main:
+                    busy.add(workspace.name)
+                if con.pid in sub_terminals:
+                    subs.add(workspace.name)
+    subs -= busy
+    later -= urgent | busy | subs
+    write_css(
+        HEADER + rules(busy, "busy") + rules(subs, "subs") + rules(later, "later")
+    )
 
 
 # --- subcommands -------------------------------------------------------------
@@ -309,7 +330,9 @@ def cmd_mark(clear: bool, sub: bool = False, everything: bool = False) -> int:
         return 0
     owner, terminal = where
     if sub:
-        sub_mark(owner, terminal, done=clear)
+        agent = str(hook_json().get("agent_id") or "")
+        agent = "".join(c for c in agent if c.isalnum()) or "unknown"
+        sub_mark(owner, terminal, agent, done=clear)
     elif clear:
         unmark(owner, everything)
     else:
@@ -320,17 +343,22 @@ def cmd_mark(clear: bool, sub: bool = False, everything: bool = False) -> int:
 def cmd_active() -> int:
     """Exit 0 while the calling claude still has work in flight.
 
-    In flight means a positive subagent tally, or a `run` marker whose owner
-    descends from this claude (a watcher it started in the background). Lets
-    the Stop hook hold the done-alert until the last of them has finished.
+    In flight means a running entry in the hook JSON's background task list,
+    a subagent marker, or a `run` marker whose owner descends from this
+    claude (a watcher it started in the background). Lets the Stop hook hold
+    the done-alert until the last of them has finished.
     """
+    tasks = hook_json().get("background_tasks")
+    if isinstance(tasks, list) and any(
+        isinstance(task, dict) and task.get("status") == "running" for task in tasks
+    ):
+        return 0
     where = owner_and_terminal()
     if where is None:
         return 1
     owner, _ = where
-    with contextlib.suppress(OSError, ValueError, IndexError):
-        if sub_terminal((MARKERS / f"{owner}.subs").read_text()) is not None:
-            return 0
+    if any(MARKERS.glob(f"{owner}.sub.*")):
+        return 0
     for marker in MARKERS.glob("[0-9]*"):
         if "." in marker.name:
             continue
@@ -443,10 +471,10 @@ def main() -> None:
     p = argparse.ArgumentParser(description="tint workspaces in waybar")
     sub = p.add_subparsers(dest="cmd", required=True)
     pm = sub.add_parser("mark", help="mark the calling terminal's workspace")
-    pm.add_argument("--sub", action="store_true", help="count a subagent starting")
+    pm.add_argument("--sub", action="store_true", help="mark a subagent starting")
     pu = sub.add_parser("unmark", help="clear the calling terminal's marker")
-    pu.add_argument("--sub", action="store_true", help="count a subagent finishing")
-    pu.add_argument("--all", action="store_true", help="also drop the subagent count")
+    pu.add_argument("--sub", action="store_true", help="clear a finished subagent")
+    pu.add_argument("--all", action="store_true", help="also clear subagent marks")
     sub.add_parser("active", help="exit 0 while subagents or run commands are going")
     pr = sub.add_parser("run", help="hold the marker while CMD runs")
     pr.add_argument("argv", nargs=argparse.REMAINDER, metavar="CMD")
