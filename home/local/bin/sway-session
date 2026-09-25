@@ -69,11 +69,11 @@ GUI_CMD: dict[str, list[str]] = {
     "signal": ["signal-desktop"],
     # spotify-launcher manages the real install under ~/.local/share
     "spotify": ["spotify-launcher"],
-    # not installed yet; app_ids are unverified guesses — save() alerts on a
-    # mismatch, so a wrong key shows up in the save log once the app runs
+    "BeeperTexts": ["beeper"],
+    "vesktop": ["vesktop"],
     "steam": ["steam"],
     "discord": ["discord"],
-    "Beeper": ["beeper"],
+    "proton-bridge": ["protonmail-bridge"],
 }
 # app_ids that are knowingly not worth restoring. Listing one here has no effect
 # on restore (anything outside GUI_CMD is skipped either way); it only tells save
