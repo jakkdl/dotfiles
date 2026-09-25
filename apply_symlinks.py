@@ -117,7 +117,7 @@ def diff_files(
         res = input(f"No permission to view {path}, overwrite? [Y/n] ")
         if res.lower() == "n":
             return "n"
-    diff = list(difflib.context_diff(path_content, target_content))
+    diff = list(difflib.unified_diff(path_content, target_content))
     if not diff and not ask_identical:
         return "n"
 
@@ -126,7 +126,7 @@ def diff_files(
     else:
         print(
             f"{path} content differs. The former is on system, the latter in Git.\n"
-            "`+` means it's in git and not in system."
+            "`+` means it's in git and not in system.\n"
             "`-` means it's on system and not in git."
         )
         print("".join(diff))
