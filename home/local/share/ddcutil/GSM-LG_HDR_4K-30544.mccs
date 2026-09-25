@@ -1,0 +1,14 @@
+# Dynamic feature definition for the LG 27UN880 ("LG HDR 4K").
+# The monitor's capability string advertises a bogus value list for feature 15
+# (01 06 11 13 14 15 18 19 28 29 48); the picture mode codes it actually
+# reports and accepts were found empirically by dumping all features in each
+# mode and diffing.
+MCCS_VERSION 2.1
+MFG_ID GSM
+MODEL LG HDR 4K
+PRODUCT_CODE 30544
+
+FEATURE_CODE x15 Picture Mode
+ATTRS RW NC
+VALUE x0B Custom
+VALUE x27 HDR
