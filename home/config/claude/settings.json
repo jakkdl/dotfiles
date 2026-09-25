@@ -139,6 +139,6 @@
     "pyright-lsp@claude-plugins-official": true
   },
   "awaySummaryEnabled": false,
-  "theme": "light",
+  "theme": "auto",
   "editorMode": "vim"
 }
