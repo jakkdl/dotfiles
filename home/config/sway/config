@@ -43,7 +43,7 @@ exec_always xdg-user-dirs-create
 # it does not re-run on config reload). See ~/.local/bin/sway-session.
 exec sway-session-restore
 # tint the waybar workspace of any terminal with a command still running; exits
-# with this sway instance. See ~/.local/bin/busy.
+# with this sway instance. Lives in ~/Git/busy, installed with uv tool.
 exec busy daemon
 
 ### Output configuration

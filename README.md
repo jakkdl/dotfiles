@@ -77,6 +77,7 @@ $ sudo pacman -S pacman-contrib  # paccache, pacman hook
 $ sudo pacman -S acpi # suspend-low-bat hook
 $ sudo pacman -S tree-sitter-cli # neovim plugin dep
 $ sudo pacman -S sway-contrib # grimshot
+$ uv tool install --editable ~/Git/busy  # waybar workspace tints, its own repo
 ```
 
 ## earlyoom
