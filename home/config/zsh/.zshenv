@@ -95,3 +95,6 @@ export ANTHROPIC_MODEL=opus
 # rootless docker
 #export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
 # We use podman instead
+
+# machine-local env variables not tracked in the dotfiles repo
+[[ -f ~/.config/zsh/zshenv.local ]] && source ~/.config/zsh/zshenv.local
