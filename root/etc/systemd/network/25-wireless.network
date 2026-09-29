@@ -25,8 +25,8 @@ ClientIdentifier=mac
 # Ignore DNS servers the DHCP lease offers (ISP resolvers); all lookups go through
 # resolved's Quad9-over-TLS config instead. Mirrors the wired file's single-source DNS.
 UseDNS=no
-# Rank wifi routes below wired (kernel default is ~100, lower = preferred). When the
-# cable is also plugged in, traffic prefers the wire; wifi is the fallback.
+# Rank wifi routes below wired (wired sets 100, lower = preferred). When the cable
+# is also plugged in, traffic prefers the wire; wifi is the fallback.
 RouteMetric=600
 
 [IPv6AcceptRA]

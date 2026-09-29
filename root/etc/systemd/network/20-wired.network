@@ -32,8 +32,13 @@ ClientIdentifier=mac
 # All lookups go through resolved's Quad9-over-TLS config instead, so the
 # unencrypted ISP servers are never used or even listed on this link.
 UseDNS=no
+# Rank wired routes above wifi (lower = preferred). networkd's default DHCP route
+# metric is 1024, which would lose to wifi's 600, so set it explicitly.
+RouteMetric=100
 
 [IPv6AcceptRA]
 # Same intent for IPv6: ignore DNS servers advertised via Router Advertisements, so
-# IPv6 can't quietly reintroduce the ISP resolvers.
+# IPv6 can't quietly reintroduce the ISP resolvers; and prefer wired over wifi
+# (networkd's RA default is 512/1024/2048 by router preference).
 UseDNS=no
+RouteMetric=100
