@@ -91,6 +91,7 @@ echo '--- check: pre-commit'
 pc=0; pre-commit run || pc=\$?
 if ((pc)) && ! git diff --quiet; then
 	echo '--- check: hooks rewrote files; restaging and rerunning'
+	git diff --name-only | sed 's/^/--- check: rewrote /'
 	git add -u
 	pc=0; pre-commit run || pc=\$?
 fi
@@ -114,8 +115,8 @@ fi
 filter=$(
 	cat <<'FILTER'
 if tail -n 1 "$RUNLOG" | grep -qE 'pre-commit=0( tests=0| \(tests skipped\))$'; then
-	grep -E '^--- check: hooks' "$RUNLOG"
-	grep -vE '(Passed|Skipped)$|^--- check: (pre-commit|tests)$|^--- check: hooks' "$RUNLOG" |
+	grep -E '^--- check: (hooks|rewrote)' "$RUNLOG"
+	grep -vE '(Passed|Skipped)$|^--- check: (pre-commit|tests)$|^--- check: (hooks|rewrote)' "$RUNLOG" |
 		tail -n 3
 else
 	sed -n '/^--- check: pre-commit$/,/^--- check: tests$/{/^--- check: tests$/!p}' "$RUNLOG" |

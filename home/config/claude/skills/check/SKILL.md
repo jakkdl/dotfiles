@@ -50,11 +50,18 @@ FAILED tests/test_seed.py::test_seed_defaults
 runlog | exit 1 | 44s | 12/210 lines | /tmp/runlog-1000/...log
 ```
 
-`--- check: hooks rewrote files; restaging and rerunning` appears when a
-formatter changed something — worth noticing, the diff moved under you.
+When a hook changed something, the rerun is reported with the files it touched —
+worth reading, the diff moved under you, and a regenerated file is now staged
+whether or not you meant to commit it:
+
+```
+--- check: hooks rewrote files; restaging and rerunning
+--- check: rewrote gui/lib/features/history/history_provider.g.dart
+```
 
 To see more, use the log path from the footer. Never rerun the suite to widen a
-filter.
+filter, and never pipe `check` into `tail` or `grep`: it already prints only the
+failures, and the pipe eats its exit status and the lines above.
 
 ## Gotchas
 
