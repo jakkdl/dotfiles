@@ -77,6 +77,9 @@ export TOGGL_CONFIG="$HOME/.config/togglrc"
 
 # Print a visual bell on password prompt
 export SUDO_PROMPT=$'\a[sudo] password for %p: '
+# ssh has no prompt setting, so its prompts go through a helper that rings it
+export SSH_ASKPASS=$HOME/.local/bin/ssh-askpass-bell
+export SSH_ASKPASS_REQUIRE=force
 
 # prompt for GPG passphrase in TTY
 export GPG_TTY=$(tty)

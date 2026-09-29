@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# SSH_ASKPASS helper that prompts on the terminal just as ssh itself would, but
+# rings the bell first, so a password, passphrase or host key prompt in a
+# window you have tabbed away from flags it (foot turns the bell into urgency
+# and a notification), like SUDO_PROMPT does for sudo. ssh only hands its
+# prompts to this with SSH_ASKPASS_REQUIRE=force, which .zshenv sets.
+#
+# Everything goes through /dev/tty, as with ssh's own prompts: stdout is
+# where ssh reads the answer from, and stdin may be a pipe (git, rsync).
+# Under sshpass that terminal is sshpass's pty, so the bell is swallowed and
+# the prompt is answered as usual.
+#
+# ssh passes the prompt but not whether the reply is secret, so replies are
+# read without echo, except for the yes/no questions.
+#
+# Exits 1 without a terminal or at end of input; ssh takes that as no answer.
+
+prompt=$1
+
+exec 3<>/dev/tty || exit 1
+
+printf '\a%s' "$prompt" >&3
+case $SSH_ASKPASS_PROMPT,$prompt in
+    confirm,* | *'(yes/no'* | *"type 'yes'"*)
+        IFS= read -r -u 3 reply || exit 1
+        ;;
+    *)
+        IFS= read -rs -u 3 reply || exit 1
+        printf '\n' >&3  # with echo off the Enter isn't echoed either
+        ;;
+esac
+printf '%s\n' "$reply"
