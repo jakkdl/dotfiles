@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Claude Code PreToolUse hook for Bash: refuse the two habits that memory alone
+# did not stop. Exit 2 blocks the call and hands the message back to Claude.
+set -uo pipefail
+
+cmd=$(jq -r '.tool_input.command // empty')
+[[ -n $cmd ]] || exit 0
+
+deny() {
+	printf '%s\n' "$1" >&2
+	exit 2
+}
+
+# Unscoped 'git add -A', '--all' or '.': nothing after the flag but an operator
+# or end of command. 'git add -A -- path' and 'git add -A path' stay allowed.
+if grep -qE '(^|[;&|(]\s*|&&\s*)git add (-A|--all|\.)\s*(;|&&|\|\||\||$)' <<<"$cmd"; then
+	deny "blocked: unscoped 'git add -A' sweeps scratch files in. Use 'git add -u' plus named paths or globs — 'git status --porcelain' first if unsure."
+fi
+
+# 'check' piped onward: it already filters, and the pipe eats its exit status
+# and the 'hooks rewrote files' lines.
+if grep -qE '(^|[;&|(]\s*|&&\s*)check(\s[^|;&]*)?\s*(2>&1\s*)?\|' <<<"$cmd"; then
+	deny "blocked: never pipe 'check' — it already prints only the failures, and the pipe drops the exit status and the rewrote-files lines. Run it bare; the log path is in its footer."
+fi
+
+exit 0
