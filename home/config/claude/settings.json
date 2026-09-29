@@ -7,14 +7,10 @@
       "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git show *)",
-      "Bash(git -C * diff *)",
-      "Bash(git -C * add *)",
-      "Bash(git -C * show *)",
       "Bash(gh run *)",
       "Bash(gh repo *)",
       "Bash(gh pr view *)",
       "Bash(gh pr diff *)",
-      "Bash(python -m pytest *)",
       "Bash(grep *)",
       "Bash(.venv/bin/pyright *)",
       "Bash(.venv/bin/pip list *)",
@@ -167,6 +163,11 @@
   },
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "xhigh"
+    }
   },
   "awaySummaryEnabled": false,
   "theme": "auto",
