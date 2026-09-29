@@ -283,7 +283,18 @@ function pr_done() {
     # -D since squash/rebase merges leave the branch looking unmerged to git.
     cd ${gitdir:h:h:h} &&
     git worktree remove $wt &&
-    git branch -D $branch &&
+    git branch -D $branch || return 1
+
+    # outlives this shell: waits for the terminal to close, then shifts every
+    # higher-numbered workspace down one to close the gap this one leaves
+    if [[ -n $SWAYSOCK ]]; then
+        if (( $+commands[pop_workspace.py] )); then
+            setsid -f pop_workspace.py
+        else
+            alert pr_done "pop_workspace.py not on PATH, workspace left alone"
+        fi
+    fi
+
     # only on full success; zsh still refuses if there are running jobs
     exit
 }
