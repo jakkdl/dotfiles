@@ -79,8 +79,10 @@ button:hover {
    workspace with $mod+o. The greens out-rank the urgent red above (two ids
    in the generated selector beat .urgent's one), so a workspace never turns
    red while work is still running; the red shows once the work finishes,
-   since sway keeps the window urgent until focused. `busy` gives each
-   workspace at most one rule so the tints themselves never collide. */
+   since sway keeps the window urgent until focused, or at once when the
+   claude is blocked on a permission prompt, which `busy` leaves untinted.
+   `busy` gives each workspace at most one rule so the tints themselves never
+   collide. */
 @define-color busy #3f8a5a;
 @define-color subs #7cae3f;
 @define-color later #0e7490;

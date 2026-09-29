@@ -118,6 +118,24 @@
             "command": "jq -r '(.tool_name // \"tool\") + (if (.tool_input.command // .tool_input.file_path) then \": \" + (.tool_input.command // .tool_input.file_path) else \"\" end)' | { read -r body; [ -n \"$CLAUDE_HEADLESS\" ] || $HOME/.local/bin/alert \"Claude Code: permission request\" \"${body:0:200}\"; }",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/busy block",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/busy unblock",
+            "timeout": 10,
+            "async": true
           }
         ]
       }
