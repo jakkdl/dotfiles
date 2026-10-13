@@ -69,7 +69,7 @@ GUI_CMD: dict[str, list[str]] = {
     "signal": ["signal-desktop"],
     # spotify-launcher manages the real install under ~/.local/share
     "spotify": ["spotify-launcher"],
-    "BeeperTexts": ["beeper"],
+    "Beeper": ["beeper"],
     "vesktop": ["vesktop"],
     "steam": ["steam"],
     "discord": ["discord"],
