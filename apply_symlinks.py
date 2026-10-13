@@ -5,16 +5,26 @@ and prompts to create or warns about missing them"""
 import difflib
 import os
 import os.path
-from shutil import copyfile, move
+import subprocess
+from shutil import copyfile, move, which
 from typing import Literal
 
 FIXFILE = "fix_links.sh"
+# copying a unit file or drop-in here means systemd needs to re-read them
+SYSTEMD_UNIT_DIR = "/etc/systemd/system/"
+# same, for the per-user manager; these get symlinked rather than copied
+SYSTEMD_USER_DIR = os.path.expanduser("~/.config/systemd/user/")
+SYSTEMD_USER_SRC = "home/config/systemd/user"
+# what counts as a unit in there, as opposed to a drop-in or a stray file
+UNIT_SUFFIXES = (".service", ".timer", ".socket", ".target", ".mount", ".path")
 
 
 def main() -> None:
     """do all the stuffs"""
-    symlink_files("home", os.path.expanduser("~"), ".")
-    commands = copy_folder_contents("root", "/")
+    commands = symlink_files("home", os.path.expanduser("~"), ".")
+    commands += copy_folder_contents("root", "/")
+    commands += check_units("root" + SYSTEMD_UNIT_DIR)
+    commands += check_units(SYSTEMD_USER_SRC, user=True)
     commands += check_submodules()
 
     if not commands:
@@ -29,6 +39,40 @@ def main() -> None:
     print("run fix_links.sh")
 
 
+def check_units(folder: str, user: bool = False) -> list[str]:
+    """prompt to enable any unit we ship that has an [Install] section but is
+    not enabled on the system. Runs regardless of whether the file was copied
+    or symlinked, since a unit already in place can still be sitting there
+    disabled. `user` picks the per-user manager, which needs no sudo."""
+    if not which("systemctl"):
+        return []
+    systemctl = ["systemctl", "--user"] if user else ["systemctl"]
+    prefix = "systemctl --user" if user else "sudo systemctl"
+    commands = []
+    units = sorted(f for f in os.listdir(folder) if f.endswith(UNIT_SUFFIXES))
+    for filename in units:
+        stem, suffix = os.path.splitext(filename)
+        # a timer is what you enable; its service is pulled in by the timer
+        if suffix == ".service" and stem + ".timer" in units:
+            continue
+        with open(os.path.join(folder, filename), encoding="utf-8") as file:
+            if "[Install]" not in file.read():
+                continue
+        state = subprocess.run(
+            systemctl + ["is-enabled", filename],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+        if state == "enabled":
+            continue
+        print(f"{filename} is {state or 'unknown'}")
+        if input("enable --now? [Y/n] ").lower() == "n":
+            continue
+        commands.append(f"{prefix} enable --now {filename}")
+    return commands
+
+
 def check_submodules() -> list[str]:
     """check for submodules"""
     if not os.path.isfile("vim-plug/plug.vim"):
@@ -39,6 +83,7 @@ def check_submodules() -> list[str]:
 def copy_folder_contents(folder: str, replace: str) -> list[str]:
     """checks if file contents differ, returns list of commands needed to rectify"""
     commands = []
+    needs_daemon_reload = False
     for dirpath, dirnames, filenames in os.walk(folder):
         if "__pycache__" in dirnames:
             dirnames.remove("__pycache__")
@@ -93,6 +138,10 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
             if remove:
                 commands.append(f"sudo rm -iv {path}")
             commands.append(f"sudo cp -iv {target} {path}")
+            if path.startswith(SYSTEMD_UNIT_DIR):
+                needs_daemon_reload = True
+    if needs_daemon_reload:
+        commands.append("sudo systemctl daemon-reload")
     return commands
 
 
@@ -143,8 +192,15 @@ def diff_files(
     raise ValueError("must be y, n or r")
 
 
-def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
-    """symlink user-writable files."""
+def link(target: str, path: str) -> bool:
+    """create a symlink, reporting whether it landed in the user unit dir"""
+    os.symlink(target, path)
+    return path.startswith(SYSTEMD_USER_DIR)
+
+
+def symlink_files(folder: str, replace: str, prefix: str = "") -> list[str]:
+    """symlink user-writable files, returning commands needed to rectify."""
+    needs_daemon_reload = False
     for dirpath, dirnames, filenames in os.walk(folder):
         if "__pycache__" in dirnames:
             dirnames.remove("__pycache__")
@@ -170,7 +226,7 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
                         continue
                     case x if x.lower() in "y":
                         os.makedirs(os.path.dirname(path), exist_ok=True)
-                        os.symlink(target, path)
+                        needs_daemon_reload |= link(target, path)
                         continue
                     case _:
                         raise ValueError("must be y, n or r")
@@ -180,36 +236,52 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> None:
                     case "n":
                         continue
                     case "r":
-                        os.remove(target)
-                        move(path, target)
-                        os.symlink(target, path)
+                        os.remove(real_target_path)
+                        move(path, real_target_path)
+                        needs_daemon_reload |= link(target, path)
                     case "y":
                         os.remove(path)
-                        os.symlink(target, path)
+                        needs_daemon_reload |= link(target, path)
 
-            elif actual_target := os.readlink(path) not in (target, real_target_path):
+            elif os.path.realpath(path) != real_target_path:
                 print(
-                    f"{path} incorrect target\n\t{actual_target} should be\n\t{target}"
+                    f"{path} incorrect target\n\t{os.readlink(path)} should be\n\t{target}"
                 )
-                # TODO: prompt to fix
+                needs_daemon_reload |= fix(path, target, real_target_path)
+
+    if needs_daemon_reload:
+        return ["systemctl --user daemon-reload"]
+    return []
 
 
-def fix(path: str, target: str) -> None:
-    """fix, or suggest how to fix, an incorrect symlink"""
+def fix(path: str, target: str, real_target_path: str) -> bool:
+    """fix, or suggest how to fix, an incorrect symlink.
+
+    `path` is the file on the system, `real_target_path` the file in this repo,
+    and `target` the relative text the symlink at `path` should hold. Returns
+    whether the resulting symlink landed in the user unit dir."""
 
     response = input("\tresolve? [Y/n/r[everse]]: ")
 
     if "r" in response:
-        os.remove(target)
-        copyfile(path, target)
+        # what's on the system wins: take it into the repo, then repoint
+        if os.path.exists(path):
+            os.remove(real_target_path)
+            copyfile(path, real_target_path)
+        else:
+            print("\tdangling, nothing to copy back; relinking instead")
+        os.remove(path)
+        return link(target, path)
 
-    elif "n" not in response:
+    if "n" not in response:
         if os.path.islink(path):
             os.remove(path)
         if not os.path.isdir(os.path.dirname(path)):
             print(f"creating directory {os.path.dirname(path)}")
             os.makedirs(os.path.dirname(path))
-        os.symlink(target, path)
+        return link(target, path)
+
+    return False
 
 
 if __name__ == "__main__":
