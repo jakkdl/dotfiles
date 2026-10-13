@@ -6,19 +6,49 @@
 # profile for that model, so unplugging a monitor or plugging an old one back in
 # needs no changes here. Models with no profile are reported and skipped.
 
-# get the current hour
-H=$(date +%k)
+read -r H M < <(date '+%-H %-M')
 
-# evening: before 07:00 or after 21:59
-if (( H < 7 || H >= 22 )); then
-    evening=1
+# The evening change fades in over FADE minutes from 22:00; the timer fires
+# every minute of that window and each run sets the value for the current
+# minute, so a boot or resume partway through lands in the right place.
+# fade: 0 = day, FADE = full evening.
+FADE=30
+if (( H >= 22 )); then
+    fade=$(( (H - 22) * 60 + M ))
+    (( fade > FADE )) && fade=$FADE
+elif (( H < 7 )); then
+    fade=$FADE
 else
-    evening=0
+    fade=0
 fi
+evening=$(( fade > 0 ))
+
+# value between $1 (day) and $2 (evening) for the current fade position
+lerp() {
+    echo $(( $1 + ($2 - $1) * fade / FADE ))
+}
+
+# Failed writes, reported together at the end.
+failures=()
+
+# Right after resume the monitor answers DDC/CI reads before it reliably
+# accepts writes, so retry a failed write a few times before giving up.
+set_vcp() {
+    local model="$1"; shift
+    for _ in 1 2 3 4 5; do
+        ddcutil --brief --model "$model" setvcp "$@" && return
+        sleep 2
+    done
+    failures+=("$model: setvcp $*")
+}
 
 # --- display profiles ------------------------------------------------------
 
 # LG 27UN880 ("LG HDR 4K", GSM/30544).
+#
+# Stays in HDR picture mode, and fades brightness and colour temperature within
+# it: preset 14 User 1 (0x0B) honours the RGB gains even in HDR, though the OSD
+# greys colour temperature out there. Lowering green and blue warms the image.
 #
 # Picture mode lives on feature 15, which is not in the MCCS spec and which the
 # monitor mis-advertises: its capability string claims the legal values are
@@ -27,16 +57,20 @@ fi
 # no metadata for, so the real definition lives in a user-defined feature file:
 #     ~/.local/share/ddcutil/GSM-LG_HDR_4K-30544.mccs
 # Without that file this fails with "Unrecognized VCP feature code".
-#
-# Each picture mode keeps its own brightness, so switching the mode is enough;
-# no separate brightness call here. Feature 14 is unused - this panel only
-# offers 6500K/9300K/User 1, no warm preset.
 profile_lg_hdr_4k() {
     local model="$1"
+    set_vcp "$model" 15 0x27
+    # brightness (feature 10), green (18) and blue (1A) gain
+    set_vcp "$model" 10 "$(lerp 58 10)"
+    set_vcp "$model" 18 "$(lerp 50 42)"
+    set_vcp "$model" 1A "$(lerp 50 30)"
+    # Color preset goes last: any gain write, even of an unchanged value,
+    # switches the preset to User 1, like adjusting RGB in the OSD does.
     if (( evening )); then
-        ddcutil --brief --model "$model" setvcp 15 0x0B
+        set_vcp "$model" 14 0x0B
     else
-        ddcutil --brief --model "$model" setvcp 15 0x27
+        # 6500 k
+        set_vcp "$model" 14 0x05
     fi
 }
 
@@ -54,12 +88,12 @@ profile_dell_u2412m() {
     local model="$1"
     if (( evening )); then
         # color preset (feature 14) 5000 k, brightness (feature 10) 20%
-        ddcutil --brief --model "$model" setvcp 14 04 --noverify
-        ddcutil --brief --model "$model" setvcp 10 20 --noverify
+        set_vcp "$model" 14 04 --noverify
+        set_vcp "$model" 10 20 --noverify
     else
         # restore color defaults (feature 08), brightness 80%
-        ddcutil --brief --model "$model" setvcp 08 01 --noverify
-        ddcutil --brief --model "$model" setvcp 10 80 --noverify
+        set_vcp "$model" 08 01 --noverify
+        set_vcp "$model" 10 80 --noverify
     fi
 }
 
@@ -74,11 +108,11 @@ profile_dell_u2412m() {
 profile_benq_g2222hdl() {
     local model="$1"
     if (( evening )); then
-        ddcutil --brief --model "$model" setvcp 14 04
-        ddcutil --brief --model "$model" setvcp 10 20
+        set_vcp "$model" 14 04
+        set_vcp "$model" 10 20
     else
-        ddcutil --brief --model "$model" setvcp 08 01
-        ddcutil --brief --model "$model" setvcp 10 80
+        set_vcp "$model" 08 01
+        set_vcp "$model" 10 80
     fi
 }
 
@@ -108,3 +142,9 @@ while IFS= read -r model; do
     [[ -n "$model" ]] && dispatch_ddc "$model"
 done < <(ddcutil detect --brief 2>/dev/null | awk -F: '/^ *Monitor:/ {print $3}')
 
+if (( ${#failures[@]} )); then
+    printf 'evening_brightness: failed: %s\n' "${failures[@]}" >&2
+    # not on the user manager's PATH
+    "$HOME/.local/bin/alert" "evening_brightness failed" "$(printf '%s\n' "${failures[@]}")"
+    exit 1
+fi
