@@ -219,7 +219,7 @@ input 13462:6:Keyboardio_Model_100_Keyboard {
     bindsym --whole-window $mod+Shift+button5 exec "mpc vol -1 >/dev/null"
 
     # toggle between speakers and headphone
-    bindsym $mod+m exec ~/.local/bin/toggle_default_sink
+    bindsym $mod+m exec "~/.local/bin/toggle_default_sink; ~/.local/bin/speakers_hass"
 
     bindsym $mod+p exec "mpc toggle"
     bindsym $mod+Shift+y exec "sus"
