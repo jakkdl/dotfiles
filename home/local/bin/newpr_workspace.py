@@ -7,7 +7,7 @@ Takes the name from argv or stdin (the sway binding pipes a wofi prompt into
 this script, so the input field shows up without waiting on python + i3ipc
 startup), takes the lowest free numbered workspace,
 renames it to "<num> <name>", and opens a terminal in ~/Git/clairos that runs
-`newpr <name>` (the zsh function: branch + worktree + venv) and then claude.
+`newpr <name>` (the zsh function: branch + worktree) and then claude.
 
 The command is handed to the shell via the zshrc SWAY_RESTORE_CMD hook, so it
 runs in a normal interactive zsh: the function is defined, the command lands
