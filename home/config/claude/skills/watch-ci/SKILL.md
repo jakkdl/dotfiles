@@ -16,8 +16,10 @@ watcher runs and passes the exit status through untouched; skip it only if
 `~/.local/bin/busy` does not exist.
 
 The PR number is optional — with none it resolves the PR for the current branch.
-The script blocks until every check concludes, prints the table, and for each
-failing check dumps the last 40 lines of the step that actually failed, so the
+The script blocks until every check concludes and every check the base branch
+requires has registered, so a job skipped in seconds cannot pass for green while
+the real workflows are still queued. It prints the table, and for each failing
+check dumps the last 40 lines of the step that actually failed, so the
 result usually contains the diagnosis already.
 
 **Do not** poll `gh` in a loop yourself, write an ad-hoc watcher, or schedule
@@ -32,7 +34,7 @@ wakeup racing the script produces two half-answers.
 | 1 | usage error, `gh` missing, or an unexpected failure — the last line names the line number |
 | 2 | the PR was closed or merged while watching |
 | 3 | timed out with checks still pending (`WATCH_CI_TIMEOUT_SECS` raises the 40 min default) |
-| 4 | checks concluded and at least one failed; the logs are in the output |
+| 4 | checks concluded and at least one failed or was cancelled; the logs are in the output |
 
 An empty output file means the script never started — that is a launch problem,
 not a CI result. Every other path prints something, including the failures.
@@ -46,6 +48,9 @@ not a CI result. Every other path prints something, including the failures.
 - **Timeout:** report it with what was still pending. Do not silently re-run: a
   job stuck for 40 minutes is usually a runner problem, and starting a second
   watcher hides it.
+- **Cancelled:** not green, but not a verdict on the diff either: someone or
+  something stopped it. Say which step it was in, and re-run it rather than
+  diagnosing it as a failure.
 - **Flake:** if a check fails for a reason unrelated to the diff, say that
   plainly rather than asserting the branch is fine, and re-run that job with
   `gh run rerun --failed <run-id>`.

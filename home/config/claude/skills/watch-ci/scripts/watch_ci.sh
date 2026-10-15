@@ -11,7 +11,7 @@
 #   1  usage error, gh missing, or an unexpected failure (the last line says where)
 #   2  the PR was closed or merged while watching
 #   3  timed out with checks still pending
-#   4  checks concluded and at least one failed — the logs are in the output
+#   4  checks concluded and at least one failed or was cancelled — the logs are in the output
 set -euo pipefail
 
 # A background watcher that dies silently leaves an empty output file, which is
@@ -68,6 +68,40 @@ gh_run pr view "$PR" --repo "$REPO" --json number >/dev/null \
 
 echo "watch_ci: watching checks on $REPO#$PR (timeout ${TIMEOUT_SECS}s, poll ${POLL_SECS}s)"
 
+# Checks register over time: a job skipped by its `if:` concludes in seconds while
+# the real workflows are still queued and absent from the list, so "nothing
+# pending" alone can mean "nothing started yet". The base branch's required
+# checks (legacy branch protection and rulesets) are the set that must be there.
+required_checks() {
+    local legacy rules base
+    # shellcheck disable=SC2016  # $owner etc. are GraphQL variables, not shell
+    legacy="$(gh_run api graphql -F owner="${REPO%%/*}" -F name="${REPO#*/}" -F pr="$PR" -f query='
+        query($owner: String!, $name: String!, $pr: Int!) {
+          repository(owner: $owner, name: $name) { pullRequest(number: $pr) {
+            baseRefName
+            baseRef { branchProtectionRule { requiredStatusCheckContexts } }
+          } }
+        }' --jq '.data.repository.pullRequest
+            | (.baseRefName, (.baseRef.branchProtectionRule.requiredStatusCheckContexts // [])[])')" \
+        || return 1
+    base="$(head -n 1 <<<"$legacy")"
+    rules="$(gh_run api "repos/$REPO/rules/branches/$base" \
+        --jq '.[] | select(.type == "required_status_checks")
+              | .parameters.required_status_checks[].context')" || return 1
+    { tail -n +2 <<<"$legacy"; echo "$rules"; } | sed '/^$/d' | jq -Rn '[inputs] | unique'
+}
+
+if required_json="$(required_checks)"; then
+    if [[ "$required_json" == "[]" ]]; then
+        echo "watch_ci: the base branch requires no checks; green needs the check list to hold still for one poll"
+    else
+        echo "watch_ci: required: $(jq -r 'join(", ")' <<<"$required_json")"
+    fi
+else
+    echo "watch_ci: could not read the required checks ($(gh_err)); green needs the check list to hold still for one poll"
+    required_json="[]"
+fi
+
 polls=0
 heartbeat() { # heartbeat <status> — a waiting watcher and a wedged one look the
              # same in a background output file unless the waiting one says so.
@@ -110,6 +144,7 @@ guard() { # guard <what-we-are-waiting-for> — timeout and closed-PR check, the
 # its columns are not a stable contract.
 checks=""
 last_why=""
+settled_names=""
 while :; do
     rc=0
     checks="$(gh_run pr checks "$PR" --repo "$REPO" --json name,state,bucket,link)" || rc=$?
@@ -121,18 +156,31 @@ while :; do
         fi
         checks=""
     fi
-    pending="?"
+    status="no checks registered yet"
     if [[ -n "$checks" ]] && jq -e 'length > 0' <<<"$checks" >/dev/null 2>&1; then
         pending="$(jq -r '[.[] | select(.bucket == "pending")] | length' <<<"$checks")"
-        if [[ "$pending" == "0" ]]; then
+        missing="$(jq -r --argjson req "$required_json" '$req - [.[].name] | join(", ")' <<<"$checks")"
+        names="$(jq -c '[.[].name] | sort' <<<"$checks")"
+        if [[ -n "$missing" ]]; then
+            status="required checks not registered yet: $missing"
+        elif [[ "$pending" != "0" ]]; then
+            status="$pending still pending"
+        elif [[ "$required_json" != "[]" || "$names" == "$settled_names" ]]; then
             break
+        else
+            # No required set to wait for: accept only a list that held still
+            # across a poll, so a late-registering workflow gets one chance.
+            settled_names="$names"
+            status="all concluded, confirming no more checks register"
         fi
     fi
-    heartbeat "$([[ "$pending" == "?" ]] && echo "no checks registered yet" || echo "$pending still pending")"
-    guard "checks to conclude"
+    heartbeat "$status"
+    guard "checks to conclude ($status)"
 done
 
-failed="$(jq -r '[.[] | select(.bucket == "fail")]' <<<"$checks")"
+# Green is an allowlist: gh's buckets are pass, skipping, fail, cancel and
+# pending, and a cancelled check did not pass.
+failed="$(jq -r '[.[] | select(.bucket != "pass" and .bucket != "skipping")]' <<<"$checks")"
 n_failed="$(jq -r 'length' <<<"$failed")"
 
 if [[ "$n_failed" == "0" ]]; then
@@ -141,27 +189,36 @@ if [[ "$n_failed" == "0" ]]; then
     exit 0
 fi
 
-echo "=== CI on $REPO#$PR: $n_failed failing ==="
+n_cancelled="$(jq -r '[.[] | select(.bucket == "cancel")] | length' <<<"$failed")"
+echo "=== CI on $REPO#$PR: $(( n_failed - n_cancelled )) failed, $n_cancelled cancelled ==="
 gh pr checks "$PR" --repo "$REPO" 2>&1 || true
 echo
 
 # The log of the step that actually failed is the first thing anyone wants, and
 # fetching it here means the session does not have to go hunting for run ids.
-while IFS=$'\t' read -r name link; do
+while IFS=$'\t' read -r name bucket link; do
     [[ -n "$name" ]] || continue
-    echo "=== failing step: $name ==="
+    # A cancelled job has no failed step, so --log-failed prints nothing; its
+    # full log ends in whichever step was running when it was cancelled.
+    log_flag=--log-failed
+    if [[ "$bucket" == "cancel" ]]; then
+        echo "=== cancelled, last step that ran: $name ==="
+        log_flag=--log
+    else
+        echo "=== failing step: $name ==="
+    fi
     run="${link#*/runs/}"; run="${run%%/*}"
     job="${link##*/job/}"; job="${job%%[!0-9]*}"
     if [[ -n "$run" && -n "$job" ]]; then
         # Everything from "Post job cleanup" on is teardown that runs after the
         # failure, so a plain tail buries the cause under git-config chatter.
-        gh run view "$run" --repo "$REPO" --job "$job" --log-failed 2>&1 \
+        gh run view "$run" --repo "$REPO" --job "$job" "$log_flag" 2>&1 \
             | sed '/Post job cleanup/q' | tail -n 40 \
             || echo "(could not fetch the log)"
     else
         echo "(no job link to fetch a log from: $link)"
     fi
     echo
-done < <(jq -r '.[] | "\(.name)\t\(.link)"' <<<"$failed")
+done < <(jq -r '.[] | "\(.name)\t\(.bucket)\t\(.link)"' <<<"$failed")
 
 exit 4
