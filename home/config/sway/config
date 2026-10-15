@@ -110,10 +110,12 @@ set $waylock 'waylock -ignore-empty-password -fork-on-lock -input-color 0x105b66
 
          # timeout 600 'swaylock -f -c 000000' \
          # before-sleep 'swaylock -f -c 101010'
+# idle-suspend holds the suspend (not the lock or dpms) while a Claude Code
+# session is working; backgrounded since -w blocks on every command.
 exec swayidle -w \
          timeout 600 $waylock \
          timeout 1200 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"' \
-         timeout 1500 'systemctl suspend' \
+         timeout 1500 'idle-suspend &' resume 'pkill -x idle-suspend' \
          before-sleep "sway-session-save sleep; $waylock"
 #
 # This will lock your screen after 300 seconds of inactivity, then turn off

@@ -1,0 +1,30 @@
+#!/bin/sh
+# swayidle's suspend step: suspend now, or once no Claude Code session is
+# working any more.
+#
+# Working is `busy working`: a turn, a subagent or background shell, a
+# `busy run` command; whatever tints a waybar workspace green. A session
+# waiting on you (a permission prompt, a `busy wait` merge watcher) does not
+# hold it, nor does a turn you interrupted. Once work was seen, it waits for
+# $grace seconds without any, so the gap between a turn ending and the turn it
+# sets off (a subagent reporting back) is not taken for the end of the work.
+# Without busy installed it suspends straight away.
+#
+# swayidle -w blocks on its commands, so this is started in the background,
+# and the timeout's resume command kills it if you come back first:
+#   timeout 1500 'idle-suspend &' resume 'pkill -x idle-suspend'
+
+poll=15   # seconds between checks
+grace=60  # seconds without work, once some was seen, before suspending
+
+quiet=$grace  # nothing seen yet, so no work means suspending at once
+while :; do
+    if busy working 2>/dev/null; then
+        quiet=0
+    elif [ "$quiet" -ge "$grace" ]; then
+        break
+    fi
+    sleep "$poll"
+    quiet=$((quiet + poll))
+done
+exec systemctl suspend
