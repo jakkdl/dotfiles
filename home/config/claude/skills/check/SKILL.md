@@ -65,8 +65,9 @@ failures, and the pipe eats its exit status and the lines above.
 
 ## Gotchas
 
-- It stages. Reverting a scratch edit afterwards needs `git checkout HEAD --
-  <file>`, not `git checkout -- <file>`, which would restore the staged copy.
+- It stages, so the index holds the work too. To probe with a scratch edit,
+  copy the file aside first and copy it back after: `git checkout` in either
+  form, `HEAD` or not, throws away the file's uncommitted changes.
 - There is no `git add -A` option, on purpose — it sweeps scratch files into the
   commit. Name new files (`git add path && check`), or glob them.
 - The tests run even when pre-commit fails, so one run reports both.
