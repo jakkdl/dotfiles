@@ -231,9 +231,9 @@ function newpr() {
     git rebase &&
     git branch --no-track $1 origin/$MAIN_BRANCH &&
     git worktree add $1 $1 &&
-    cd $1 &&
+    cd $1
     #yes n | ln -rs ../tox.ini
-    mkvenv
+    # && mkvenv
 }
 function ghpr() {
     check_args 1 $# || return 1
@@ -244,8 +244,8 @@ function ghpr() {
     NAME=$(git branch --show-current) &&
     git checkout $MAIN_BRANCH
     git worktree add $NAME $NAME &&
-    cd $NAME &&
-    mkvenv
+    cd $NAME
+    # && mkvenv
 }
 
 
@@ -275,15 +275,12 @@ function pr_done() {
     fi
     wt=$(git rev-parse --show-toplevel) || return 1
     branch=$(git branch --show-current)
-    if [[ -z $branch ]]; then
-        echo "pr_done: detached HEAD, no branch to delete" >&2
-        return 1
-    fi
+    [[ -n $branch ]] || echo "pr_done: detached HEAD, no branch to delete" >&2
     # cd to the main worktree first; our CWD is about to be deleted.
     # -D since squash/rebase merges leave the branch looking unmerged to git.
     cd ${gitdir:h:h:h} &&
     git worktree remove $wt &&
-    git branch -D $branch || return 1
+    { [[ -z $branch ]] || git branch -D $branch } || return 1
 
     # outlives this shell: waits for the terminal to close, then shifts every
     # higher-numbered workspace down one to close the gap this one leaves
