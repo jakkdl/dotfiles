@@ -12,6 +12,8 @@
       "Bash(gh pr view *)",
       "Bash(gh pr diff *)",
       "Bash(grep *)",
+      "Bash(just test-hw *)",
+      "Bash(just install *)",
       "Bash(.venv/bin/pyright *)",
       "Bash(.venv/bin/pip list *)",
       "Bash(.venv/bin/pip show *)",
