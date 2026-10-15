@@ -1,0 +1,94 @@
+#!/bin/zsh
+# Log in to a captive portal (hotel/airport/café/train wifi) without touching system DNS.
+#   portal [dev]   dev defaults to the wireless device with a default route
+#
+# resolved is pinned to Quad9 for every domain (Domains=~. in resolved.conf.d) and
+# both .network files set UseDNS=no, so the network's own resolver is never asked.
+# A portal works by hijacking exactly that resolver, and blocks everything else until
+# you log in — so on portal wifi nothing resolves and the login page never appears.
+#
+# This runs one throwaway Firefox inside a mount namespace that sees a private
+# /etc/resolv.conf pointing at the DHCP-advertised resolver. Nothing global changes,
+# so there is nothing to restore afterwards and every other program keeps using Quad9
+# while the portal window is open. bwrap is used purely for that mount overlay, not to
+# sandbox anything: --dev-bind / / hands Firefox the whole filesystem as usual.
+
+typeset dev hex octet tmp i
+typeset -a dns devs
+
+# Ordered by metric, so devs[1] is where traffic actually leaves.
+devs=($(ip -4 -json route show default | jq -r '.[].dev'))
+if (( ! $#devs )); then
+    echo "portal: no IPv4 default route, not associated with a network?" >&2
+    exit 1
+fi
+# Portals are a wifi thing, but a tethered phone or dock (metric 100) outranks
+# wifi (600), so prefer a wireless device over whichever route happens to win.
+dev=$1
+if [[ -z $dev ]]; then
+    for i in $devs; do [[ -d /sys/class/net/$i/wireless ]] && { dev=$i; break }; done
+    : ${dev:=$devs[1]}
+fi
+# Firefox can't be pinned to an interface without root, so while another route
+# outranks $dev the probe gets its "Success" there and the portal never sees it.
+if [[ $devs[1] != $dev ]]; then
+    echo "portal: traffic leaves via $devs[1], not $dev; disconnect $devs[1] first" >&2
+    exit 1
+fi
+# tailscaled's netfilter rules drop anything from 100.64.0.0/10 arriving outside
+# tailscale0, and some portals live there (WIFIonICE's login.wifionice.de is
+# 100.64.1.2): the redirect works, then the login page hangs. This laptop runs
+# --netfilter-mode=off for that reason (nftables.conf does the filtering instead),
+# so this only fires if the mode comes back on, say after a `tailscale up --reset`.
+if (( $+commands[tailscale] )) &&
+   [[ $(tailscale debug prefs 2>/dev/null | jq .NetfilterMode) == 2 ]]; then
+    echo "portal: tailscale's netfilter rules block portals in 100.64.0.0/10 (e.g. WIFIonICE);" \
+         "'sudo tailscale set --netfilter-mode=off' if the login page hangs" >&2
+fi
+
+# DHCP option 6 is the resolver list. networkd records the raw lease even though
+# UseDNS=no stops it from ever being used, and networkctl serves it without root
+# (unlike the lease files under /run/systemd/netif, which are root-only).
+hex=$(networkctl status $dev --json=short |
+      jq -r '.DHCPv4Client.Lease.Message.options[]? | select(.tag == 6) | .data')
+for ((i = 1; i <= ${#hex}; i += 8)); do
+    octet=${hex[i,i+7]}
+    dns+=("$(( 16#${octet[1,2]} )).$(( 16#${octet[3,4]} )).$(( 16#${octet[5,6]} )).$(( 16#${octet[7,8]} ))")
+done
+# Networks that hand out no resolver still usually answer DNS on the gateway.
+(( $#dns )) || dns=($(ip -4 -json route show default dev $dev | jq -r '.[0].gateway // empty'))
+if (( ! $#dns )); then
+    echo "portal: $dev advertised no DNS server and has no gateway" >&2
+    exit 1
+fi
+
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf $tmp' EXIT
+# the EXIT trap only runs on a regular exit, so turn ^C into one
+trap 'exit 130' INT TERM HUP
+
+printf 'nameserver %s\n' $dns > $tmp/resolv.conf
+# nss-resolve answers lookups from resolved (i.e. Quad9) before glibc ever
+# reads resolv.conf, so it has to come out of the hosts line as well.
+sed 's/^hosts:.*/hosts: files dns/' /etc/nsswitch.conf > $tmp/nsswitch.conf
+
+mkdir $tmp/profile
+# trr=5 disables DNS-over-HTTPS, which would resolve over the network and
+# ignore the namespace; https_first would upgrade the probe URL to https,
+# which portals cannot intercept.
+cat > $tmp/profile/user.js <<'EOF'
+user_pref("network.trr.mode", 5);
+user_pref("dom.security.https_first", false);
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+EOF
+
+echo "portal: resolving via $dns[1] on $dev; close the window when logged in."
+echo "portal: a page reading \"Success\" means there is no portal to log in to."
+# /etc/resolv.conf is a symlink and bwrap refuses to mount over one, so bind
+# the stub file it points at instead. Both binds exist only in the namespace.
+bwrap --dev-bind / / --die-with-parent \
+    --bind $tmp/resolv.conf /run/systemd/resolve/stub-resolv.conf \
+    --bind $tmp/nsswitch.conf /etc/nsswitch.conf \
+    -- firefox --profile $tmp/profile --no-remote --new-instance \
+       http://detectportal.firefox.com/canonical.html
