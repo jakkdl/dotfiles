@@ -1,0 +1,186 @@
+#!/usr/bin/python
+"""Claude Code hook: a session that opens or pushes to a PR holds a merge watcher on it.
+
+'claude-pr-watch record' on PostToolUse(Failure) (Bash) notes every PR the session opened
+with 'gh pr create' or pushed commits to. 'claude-pr-watch stop' on Stop blocks the
+end of the turn while one of those PRs is still open and no watch_merge.sh for it
+runs under this session's claude process, saying how to start one. A PR found
+merged or closed is dropped. Subagents share the session id, so a PR a subagent
+opened is the main session's to watch.
+
+State lives in ~/.local/state, not the runtime dir, and outlives SessionEnd: a
+resumed session has lost its background watchers and must start them again.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+STATE = (
+    Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
+    / "claude-pr-watch"
+)
+WATCHER = "~/.config/claude/skills/watch-merge/scripts/watch_merge.sh"
+PR_URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
+# git push names the remote as configured (scp-style ssh, ssh:// or https), then
+# reports one line per ref: "   a1b2..c3d4  local -> branch".
+PUSH_REMOTE = re.compile(
+    r"^To \S*github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$", re.MULTILINE
+)
+PUSH_REF = re.compile(r"^ [ +*].*?\S+ -> (\S+)", re.MULTILINE)
+OPEN_PR_URLS = ("--state", "open", "--json", "url", "--jq", ".[].url")
+
+
+def load(path: Path) -> list[str]:
+    try:
+        return json.loads(path.read_text())
+    except (FileNotFoundError, ValueError):
+        return []
+
+
+def gh(*args: str) -> str | None:
+    try:
+        done = subprocess.run(
+            ["gh", *args], capture_output=True, text=True, timeout=20, check=False
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return done.stdout.strip() if done.returncode == 0 else None
+
+
+def pushed_prs(output: str) -> list[str]:
+    remote = PUSH_REMOTE.search(output)
+    if not remote:
+        return []
+    urls = []
+    for branch in PUSH_REF.findall(output):
+        found = gh("pr", "list", "--repo", remote[1], "--head", branch, *OPEN_PR_URLS)
+        urls += (found or "").split()
+    return urls
+
+
+def record(payload: dict, path: Path) -> None:
+    command = payload.get("tool_input", {}).get("command", "")
+    # A failed command (PostToolUseFailure) carries its output in "error" instead:
+    # 'gh pr create && <a step that fails>' still opened the PR.
+    response = payload.get("tool_response") or {}
+    output = "\n".join(
+        str(part or "")
+        for part in (
+            response.get("stdout"),
+            response.get("stderr"),
+            payload.get("error"),
+        )
+    )
+    if "gh pr create" in command:
+        urls = PR_URL.findall(output)
+    elif re.search(r"\bgit\b.*\bpush\b", command):
+        urls = pushed_prs(output)
+    else:
+        return
+    known = load(path)
+    new = [u for u in dict.fromkeys(urls) if u not in known]
+    if new:
+        STATE.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(known + new))
+
+
+def ancestors(pid: int) -> list[int]:
+    chain = []
+    while pid > 1:
+        chain.append(pid)
+        try:
+            # comm can hold spaces and parens; the fields after its closing paren can't.
+            pid = int(
+                Path(f"/proc/{pid}/stat").read_text().rpartition(")")[2].split()[1]
+            )
+        except (OSError, ValueError, IndexError):
+            break
+    return chain
+
+
+def claude_pid() -> int | None:
+    for pid in ancestors(os.getppid()):
+        try:
+            if Path(f"/proc/{pid}/comm").read_text().strip() == "claude":
+                return pid
+        except OSError:
+            pass
+    return None
+
+
+def watched(owner: int | None) -> set[str]:
+    """The PR numbers and URLs that a running watch_merge.sh under owner was given."""
+    seen = set()
+    for proc in Path("/proc").iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            argv = (proc / "cmdline").read_bytes().decode(errors="replace").split("\0")
+        except OSError:
+            continue
+        if not any(a.endswith("watch_merge.sh") for a in argv):
+            continue
+        if owner is None or owner in ancestors(int(proc.name)):
+            seen.update(argv)
+    return seen
+
+
+def stop(payload: dict, path: Path) -> None:
+    # One nudge per stop: a session that can't or won't comply must still be able to end.
+    if payload.get("stop_hook_active") or os.environ.get("CLAUDE_HEADLESS"):
+        return
+    urls = load(path)
+    if not urls:
+        return
+    # Without the claude ancestor, a watcher from any session counts.
+    running = watched(claude_pid())
+    done, unwatched = [], []
+    for url in urls:
+        if url in running or url.rsplit("/", 1)[1] in running:
+            continue
+        state = gh("pr", "view", url, "--json", "state", "--jq", ".state")
+        if state in ("MERGED", "CLOSED"):
+            done.append(url)
+        else:
+            unwatched.append(url)
+    if done:
+        # Re-read: a push recorded while gh was answering must not be lost.
+        path.write_text(json.dumps([u for u in load(path) if u not in done]))
+    if not unwatched:
+        return
+    starts = "\n".join(
+        f"Bash (run_in_background: true): ~/.local/bin/busy wait {WATCHER} {url}"
+        for url in unwatched
+    )
+    reason = (
+        "This session opened or pushed to these PRs, they are still open (or their state "
+        "could not be read), and no merge watcher of yours is running for them: "
+        + ", ".join(unwatched)
+        + ". Every PR you open is watched until it merges or closes, so conflicts and "
+        "comments reach you. Start one per PR, as the watch-merge skill says, then end "
+        f"the turn:\n{starts}"
+    )
+    print(json.dumps({"decision": "block", "reason": reason}))
+
+
+def main() -> int:
+    payload = json.load(sys.stdin)
+    session = payload.get("session_id")
+    if not session:
+        return 0
+    path = STATE / session
+    if sys.argv[1:] == ["record"]:
+        record(payload, path)
+    elif sys.argv[1:] == ["stop"]:
+        stop(payload, path)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

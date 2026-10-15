@@ -99,6 +99,11 @@
             "command": "$HOME/.local/bin/busy unmark",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-pr-watch stop",
+            "timeout": 60
           }
         ]
       }
@@ -199,6 +204,17 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-pr-watch record",
+            "timeout": 30,
+            "async": true
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
@@ -214,6 +230,17 @@
             "type": "command",
             "command": "$HOME/.local/bin/claude-suspend-notice",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-pr-watch record",
+            "timeout": 30,
+            "async": true
           }
         ]
       }
