@@ -36,6 +36,23 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '[.tool_input.questions[]?.question] | join(\" / \")' | { read -r body; [ -n \"$CLAUDE_HEADLESS\" ] || $HOME/.local/bin/alert \"Claude Code: question\" \"${body:0:200}\"; }",
+            "timeout": 10,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/busy block",
+            "timeout": 10,
+            "async": true
+          }
+        ]
       }
     ],
     "PostCompact": [
@@ -75,6 +92,24 @@
           {
             "type": "command",
             "command": "$HOME/.local/bin/busy unmark",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '(.error // \"error\") + (if .last_assistant_message then \": \" + .last_assistant_message else \"\" end)' | { read -r body; [ -n \"$CLAUDE_HEADLESS\" ] || $HOME/.local/bin/alert \"Claude Code: turn failed\" \"${body:0:200}\"; }",
+            "timeout": 10,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/busy unmark && $HOME/.local/bin/busy block",
             "timeout": 10,
             "async": true
           }
@@ -139,6 +174,18 @@
       }
     ],
     "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/busy unblock",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
       {
         "hooks": [
           {
