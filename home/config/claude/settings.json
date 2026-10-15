@@ -76,6 +76,11 @@
             "command": "$HOME/.local/bin/busy mark",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-suspend-notice",
+            "timeout": 5
           }
         ]
       }
@@ -123,6 +128,12 @@
             "type": "command",
             "command": "$HOME/.local/bin/busy unmark --all",
             "timeout": 10,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-suspend-notice end",
+            "timeout": 5,
             "async": true
           }
         ]
@@ -181,6 +192,11 @@
             "command": "$HOME/.local/bin/busy unblock",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-suspend-notice",
+            "timeout": 5
           }
         ]
       }
@@ -193,6 +209,11 @@
             "command": "$HOME/.local/bin/busy unblock",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/claude-suspend-notice",
+            "timeout": 5
           }
         ]
       }

@@ -1,0 +1,194 @@
+#!/usr/bin/python
+"""Claude Code hook: tell the model when the machine was suspended under it, and
+which network it is on.
+
+CLOCK_BOOTTIME counts time spent suspended and CLOCK_MONOTONIC does not, so
+their difference is the total time slept since boot. Each session (and each
+subagent, which shares the session id) records that total on every hook call;
+when it has grown since the previous call, the hook injects a note so network
+errors, timeouts and stale remote state from across the gap get retried rather
+than diagnosed as real failures.
+
+The laptop moves between the office, where the Z1s share its LAN, and anywhere
+else, where they are reachable over Tailscale alone; a suspend is usually where
+that changes. The network is classified from the routing table on every call,
+and stated on a conversation's first call, in every suspend notice, and
+whenever it changed since the previous call.
+
+Registered on UserPromptSubmit, PostToolUse and PostToolUseFailure.
+'claude-suspend-notice end' on SessionEnd drops the session's state files.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import socket
+import struct
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+# Anything shorter is clock-read jitter or not worth mentioning.
+MIN_GAP = 10.0
+_runtime = os.environ.get("XDG_RUNTIME_DIR")
+STATE = (
+    Path(_runtime) / "claude-suspend"
+    if _runtime
+    else Path(f"/tmp/claude-suspend-{os.getuid()}")
+)
+# The office router, wired or on the "Clair" Wi-Fi. Its MAC tells it apart from
+# another network's router at the same address, once the ARP entry exists.
+OFFICE_GATEWAY = ("192.168.128.1", "48:3a:02:7c:b8:43")
+
+
+def network() -> str:
+    """'office', 'elsewhere', or 'offline' (no default route)."""
+    gateways = []
+    for line in Path("/proc/net/route").read_text().splitlines()[1:]:
+        iface, dest, gateway = line.split()[:3]
+        if dest == "00000000":
+            gateways.append(
+                (socket.inet_ntoa(struct.pack("<I", int(gateway, 16))), iface)
+            )
+    if not gateways:
+        return "offline"
+    macs = {}
+    for line in Path("/proc/net/arp").read_text().splitlines()[1:]:
+        fields = line.split()
+        macs[fields[0], fields[5]] = fields[3]
+    ip, mac = OFFICE_GATEWAY
+    for gateway, iface in gateways:
+        if gateway == ip and macs.get((gateway, iface), mac) in (
+            mac,
+            "00:00:00:00:00:00",
+        ):
+            return "office"
+    return "elsewhere"
+
+
+def tailscale_state() -> str:
+    try:
+        done = subprocess.run(
+            ["tailscale", "status", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+        return json.loads(done.stdout).get("BackendState") or "unknown"
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return "unknown"
+
+
+def describe(net: str) -> str:
+    if net == "office":
+        return (
+            "Network: this laptop is on the office LAN, so office Z1s answer as "
+            "`<host>.local`, and by their bare Tailscale name (`z1-okaul0`) while "
+            "Tailscale runs on them."
+        )
+    if net == "offline":
+        return "Network: this laptop has no network route, so no Z1 is reachable."
+    text = (
+        "Network: this laptop is NOT on the office LAN. Reach office Z1s by their bare "
+        "Tailscale name (`z1-okaul0`, never `<host>.local`), and only the ones "
+        "`tailscale status` lists online; the rest need remote access granted on the "
+        "device first."
+    )
+    state = tailscale_state()
+    if state != "Running":
+        text += f" Tailscale on this laptop is {state}, so none are reachable until it runs."
+    return text
+
+
+def slept_total() -> float:
+    boot = time.clock_gettime(time.CLOCK_BOOTTIME)
+    return boot - time.clock_gettime(time.CLOCK_MONOTONIC)
+
+
+def fmt_duration(seconds: float) -> str:
+    minutes = round(seconds / 60)
+    if minutes < 1:
+        return f"{round(seconds)}s"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h{minutes:02d}m" if hours else f"{minutes}m"
+
+
+def fmt_clock(epoch: float) -> str:
+    fmt = (
+        "%H:%M"
+        if time.localtime(epoch).tm_yday == time.localtime().tm_yday
+        else "%a %H:%M"
+    )
+    return time.strftime(fmt, time.localtime(epoch))
+
+
+def notice(gap: float, since: float) -> str:
+    return (
+        f"Suspend notice: this machine was suspended for {fmt_duration(gap)} since this "
+        f"conversation's previous tool call or prompt at {fmt_clock(since)} (now {fmt_clock(time.time())}). "
+        "Every process was frozen, then thawed: connections dropped, in-flight requests and "
+        "commands running across the gap may have failed or timed out, and remote state "
+        "(CI runs, PRs, reviews, tokens) has moved on. Treat network errors, timeouts or "
+        "dead background tasks from around then as suspend artefacts: retry or re-query "
+        "before diagnosing them, and don't assume pending work is still where you left it. "
+        "A '401 OAuth access token has been revoked' (including on subagents) just after "
+        "wake is another instance refreshing the shared login, not a real logout: retry "
+        "or relaunch, and don't ask the user to /login."
+    )
+
+
+def main() -> int:
+    payload = json.load(sys.stdin)
+    session = payload.get("session_id")
+    if not session:
+        return 0
+    if sys.argv[1:] == ["end"]:
+        for path in STATE.glob(f"{session}*"):
+            path.unlink(missing_ok=True)
+        return 0
+
+    agent = payload.get("agent_id")
+    path = STATE / (f"{session}.{agent}" if agent else session)
+    now_slept, now_wall = slept_total(), time.time()
+    try:
+        prev = json.loads(path.read_text())
+    except (FileNotFoundError, ValueError):
+        prev = None
+    STATE.mkdir(mode=0o700, exist_ok=True)
+    net = network()
+    path.write_text(json.dumps({"slept": now_slept, "wall": now_wall, "net": net}))
+
+    event = payload.get("hook_event_name")
+    if prev is None:
+        # The review bot and other headless runs never touch a device.
+        if os.environ.get("CLAUDE_HEADLESS"):
+            return 0
+        context = describe(net)
+    else:
+        gap = now_slept - prev["slept"]
+        moved = net != prev.get("net", net)
+        if gap >= MIN_GAP:
+            change = " The network changed across the gap." if moved else ""
+            context = f"{notice(gap, prev['wall'])}{change} {describe(net)}"
+        elif moved:
+            context = (
+                "The network changed since this conversation's previous tool call or "
+                f"prompt; what was reachable then may not be now. {describe(net)}"
+            )
+        else:
+            return 0
+    output = {
+        "hookSpecificOutput": {
+            "hookEventName": event,
+            "additionalContext": context,
+        }
+    }
+    print(json.dumps(output))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
