@@ -17,6 +17,7 @@ SYSTEMD_USER_DIR = os.path.expanduser("~/.config/systemd/user/")
 SYSTEMD_USER_SRC = "home/config/systemd/user"
 # what counts as a unit in there, as opposed to a drop-in or a stray file
 UNIT_SUFFIXES = (".service", ".timer", ".socket", ".target", ".mount", ".path")
+SKIP_DIRS = {"__pycache__", ".ruff_cache"}
 
 
 def main() -> None:
@@ -85,8 +86,7 @@ def copy_folder_contents(folder: str, replace: str) -> list[str]:
     commands = []
     needs_daemon_reload = False
     for dirpath, dirnames, filenames in os.walk(folder):
-        if "__pycache__" in dirnames:
-            dirnames.remove("__pycache__")
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         # root/ -> /
         # root/dir/ -> /dir/
         base = os.path.join(replace, dirpath[len(folder) + 1 :], "")
@@ -214,8 +214,7 @@ def symlink_files(folder: str, replace: str, prefix: str = "") -> list[str]:
     """symlink user-writable files, returning commands needed to rectify."""
     needs_daemon_reload = False
     for dirpath, dirnames, filenames in os.walk(folder):
-        if "__pycache__" in dirnames:
-            dirnames.remove("__pycache__")
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         if dirpath == folder:
             # home/ -> ~/.
             base = os.path.join(replace, prefix)
