@@ -220,6 +220,8 @@ gd() {
     fi
 }
 
+# newpr <name>: start new work on a fresh branch off origin's default branch,
+# in a worktree of its own
 function newpr() {
     check_args 1 $# || return 1
     git fetch --all &&
@@ -235,17 +237,22 @@ function newpr() {
     #yes n | ln -rs ../tox.ini
     # && mkvenv
 }
+# ghpr <pr>: pick up an existing PR, anyone's, in a worktree of its own
 function ghpr() {
     check_args 1 $# || return 1
-    git fetch --all &&
-    gitdir=$(git rev-parse --git-common-dir) &&
+    local gitdir name
+    gitdir=$(git rev-parse --path-format=absolute --git-common-dir) &&
     cd ${gitdir:h} &&
-    gh pr checkout $1 &&
-    NAME=$(git branch --show-current) &&
-    git checkout $MAIN_BRANCH
-    git worktree add $NAME $NAME &&
-    cd $NAME
-    # && mkvenv
+    name=$(gh pr view $1 --json headRefName --jq .headRefName) &&
+    # check out inside the new worktree, so the main checkout keeps its branch
+    # and may be dirty; for a PR from a fork, gh points the branch's pull and
+    # push at the fork, so a plain git push updates the PR
+    git worktree add --detach $name &&
+    cd $name || return 1
+    if ! gh pr checkout $1; then
+        cd ${gitdir:h} && git worktree remove $name
+        return 1
+    fi
 }
 
 
@@ -300,11 +307,6 @@ function resetfile() {
     git reset $1 -- $2
     git restore $2
     git restore --staged $2
-}
-function ghpr() {
-    check_args 1 $# || return 1
-    gh pr checkout $1
-    git push -u $(git rev-parse --abbrev-ref --symbolic-full-name @\{u\} | cut -d '/' -f 1)
 }
 function mybranches() {
     git branch --remote --list --sort=-committerdate 'jakkdl/*' |
